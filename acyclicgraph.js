@@ -51,6 +51,8 @@ graph.run(tree.tag,{x:4,y:5,z:6});
 each node in the tree becomes a graphnode object
 
 */
+//TODO: try to reduce the async stack a bit for better optimization, though in general it is advantageous matter as long as node propagation isn't 
+//   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
 
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
 export class AcyclicGraph {
@@ -154,7 +156,7 @@ export class AcyclicGraph {
         parentNode.addChildren(node);
     }
 
-    async run (node,input,origin) {
+    run (node,input,origin) {
         if(typeof node === 'string') node = this.nodes.get(node);
 
         return new Promise(async (resolve) => {
@@ -275,7 +277,7 @@ export class graphnode {
 
     //runs the node sequence
     run(node,input,origin){
-        this.graph.run(node,input,origin);
+        return this.graph.run(node,input,origin);
     }; //graph function
 
     //this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
@@ -336,3 +338,4 @@ export class graphnode {
     }
 
 }
+

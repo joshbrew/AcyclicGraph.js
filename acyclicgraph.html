@@ -105,7 +105,7 @@
         parentNode.addChildren(node);
     }
 
-    async run (node,input,origin) {
+    run (node,input,origin) {
         if(typeof node === 'string') node = this.nodes.get(node);
 
         return new Promise(async (resolve) => {
@@ -226,7 +226,7 @@ class graphnode {
 
     //runs the node sequence
     run(node,input,origin){
-        this.graph.run(node,input,origin);
+        return this.graph.run(node,input,origin);
     }; //graph function
 
     //this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
@@ -328,18 +328,9 @@ let tree = { //top level should be an object, children can be arrays of objects
 let graph = new AcyclicGraph();
 graph.addNode(tree);
 
-let res = graph.run(tree.tag,{x:4,y:5,z:6});
+let res = graph.run(tree.tag,{x:4,y:5,z:6}).then(res => console.log('promise, after', res));
 
-console.log('promise:',res);
-
-setTimeout(()=>{console.log('delayed promise log:',res)},3000);
-
-
-
-
-
-
-
+console.log('promise returned:',res);
 
 
 
