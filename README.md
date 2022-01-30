@@ -1,5 +1,7 @@
 ## Acyclic Graphs
 
+`npm i acyclicgraph`
+
 Easy node tree graph for creating [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) i.e. any arbitrary node tree with forward and backpropagation, repeaters, etc. for chaining scripts and scopes e.g. [game systems](https://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/). 
 
 This is built around the idea of having an operator i.e. a custom i/o handler at each scope. You can easily extend the graphnode class with primitives etc for different systems, just read the code. Otherwise it's a pure javascript implementation with no dependencies.
