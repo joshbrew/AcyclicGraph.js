@@ -8,6 +8,8 @@ Running a node returns a promise that resolves after the tree is finished runnin
 
 This can get as complex as you want as each node is essentially just a different local scope and a main() function for each, with some easy piping based on writing a native object hierarchy with optional tagging for important nodes where results need to be subscribed to or chained to other complex nodes.
 
+For a more basic function sequencer, see [Sequencer.js](https://github.com/brainsatplay/Sequencer.js)
+
 ### Basic usage
 ```js
 
@@ -54,3 +56,5 @@ graph.run(tree.tag,{x:4,y:5,z:6});
 
 
 ```
+
+Joshua Brewster --  AGPLv3.0
