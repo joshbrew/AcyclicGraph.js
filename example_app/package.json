@@ -20,7 +20,7 @@
     "acyclicgraph": "^0.1.11",
     "anothersequencer": "^0.1.8",
     "esbuild": "^0.14.21",
-    "fragelement": "^1.0.7"
+    "fragelement": "^1.1.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.15",

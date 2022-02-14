@@ -84,6 +84,14 @@
         return this.nodes.get(tag);
     }
 
+    //Should create a sync version with no promises (will block but be faster)
+    run(node,input,origin) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node)
+            return node.runNode(node,input,origin)
+        else return undefined;
+    }
+
     removeTree(node) {
         if(typeof node === 'string') node = this.nodes.get(node);
         if(node) {
@@ -115,9 +123,70 @@
         parentNode.addChildren(node);
     }
 
+    async callParent(node, input, origin=node) {
+        if(node?.parent) {
+            return await node.callParent(input, node.children, origin);
+        }
+    }
+
+    async callChildren(node, input, origin=node, idx) {
+        if(node?.children) {
+            return await node.callChildren(input, origin, idx);
+        }
+    }
+
+    subscribe(tag,callback=(res)=>{}) {
+        return this.state.subscribeTrigger(tag,callback);
+    }
+
+    unsubscribe(tag,sub) {
+        this.state.unsubscribeTrigger(tag,sub);
+    }
+
+}
+
+//the utilities in this class can be referenced in the operator after setup for more complex functionality
+//node functionality is self-contained, use a graph for organization
+class GraphNode {
+    parent;
+    children;
+    graph;
+
+    constructor(properties={}, parent, graph={}) {
+        if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
+        else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
+        Object.assign(this,properties); //set the node's props as this
+        this.parent=parent;
+        this.graph=graph;
+
+        if(graph) {
+            graph.nNodes++;
+            graph.nodes.set(properties.tag,this);
+        }
+
+        if(this.children) this.convertChildrenToNodes(this);
+    }
+
+    //I/O scheme for this node
+    operator(input,node=this,origin){
+        return input;
+    }
+
+    //run the operator
+    async runOp(input,node=this,origin) {
+        let result = await this.operator(input,node, origin);
+        if(this.tag && this.graph) this.graph.state.setState({[this.tag]:result});
+        return result;
+    }
+
+    //runs the node sequence
     //Should create a sync version with no promises (will block but be faster)
-    run(node,input,origin) {
-        if(typeof node === 'string') node = this.nodes.get(node);
+    runNode(node=this,input,origin) {
+        if(typeof node === 'string') 
+            {
+                if(!this.graph) return undefined;
+                node = this.graph.nodes.get(node);
+            }
 
         return new Promise(async (resolve) => {
             if(node) {
@@ -179,15 +248,15 @@
                     let res = await run(node,input); //repeat/recurse before moving on to the parent/child
 
                     if(node.backward && node.parent) {
-                        await this.run(node.parent,res,node)
+                        await this.runNode(node.parent,res,node)
                     }
                     if(node.children && node.forward) {
                         if(Array.isArray(node.children)) {
                             for(let i = 0; i < node.children.length; i++) {
-                                await this.run(node.children[i],res,node);
+                                await this.runNode(node.children[i],res,node);
                             }
                         }
-                        else await this.run(node.children,res,node);
+                        else await this.runNode(node.children,res,node);
                     }
                     
                     return res;
@@ -210,70 +279,9 @@
         });
     }
 
-    async callParent(node, input, origin=node) {
-        if(node?.parent) {
-            return await node.callParent(input, node.children, origin);
-        }
-    }
-
-    async callChildren(node, input, origin=node, idx) {
-        if(node?.children) {
-            return await node.callChildren(input, origin, idx);
-        }
-    }
-
-    subscribe(tag,callback=(res)=>{}) {
-        return this.state.subscribeTrigger(tag,callback);
-    }
-
-    unsubscribe(tag,sub) {
-        this.state.unsubscribeTrigger(tag,sub);
-    }
-
-}
-
-//the utilities in this class can be referenced in the operator after setup for more complex functionality
-//node functionality is self-contained, use a graph for organization
-class GraphNode {
-    parent;
-    children;
-    graph;
-
-    constructor(properties={}, parent, graph={}) {
-        if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
-        else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
-        Object.assign(this,properties); //set the node's props as this
-        this.parent=parent;
-        this.graph=graph;
-
-        if(graph) {
-            graph.nNodes++;
-            graph.nodes.set(properties.tag,this);
-        }
-
-        if(this.children) this.convertChildrenToNodes(this);
-    }
-
-    //I/O scheme for this node
-    operator(input,node=this,origin){
-        return input;
-    }
-
-    //runs the node sequence
-    run(node,input,origin){
-        return this.graph.run(node,input,origin);
-    }; //graph function
-
     //this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
     setOperator(operator=function operator(input,node=this,origin){return input;}) {
         this.operator = operator;
-    }
-
-    //run the operator
-    async runOp(input,node=this,origin) {
-        let result = await this.operator(input,node, origin);
-        if(this.tag && this.graph) this.graph.state.setState({[this.tag]:result});
-        return result;
     }
 
     setParent(parent) { 

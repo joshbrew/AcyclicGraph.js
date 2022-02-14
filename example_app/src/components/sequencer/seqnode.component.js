@@ -1,10 +1,10 @@
 
 import {DOMElement, addCustomElement} from 'fragelement';
 
-let component = require('./component.html');
+let component = require('./sequencer.component.html');
 
 //See: https://github.com/brainsatplay/domelement
-export class Custom extends DOMElement {
+export class SeqNode extends DOMElement {
     props={
         operation:(input) => {
             return input;
@@ -26,4 +26,4 @@ export class Custom extends DOMElement {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(Custom,'custom-');
+addCustomElement(SeqNode,'snode-');

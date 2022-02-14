@@ -23,7 +23,7 @@ export class SeqGraph extends DOMElement {
             });
         }
 
-        let topchildren = this.querySelectorAll('acyclic-graph > graph-node')
+        let topchildren = this.querySelectorAll('sequencer- > snode')
 
         this.querySelector('button').onclick = () => {
             topchildren.forEach((c)=>{
