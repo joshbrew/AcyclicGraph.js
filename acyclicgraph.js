@@ -48,17 +48,18 @@ graph.addNode(tree);
 
 graph.run(tree.tag,{x:4,y:5,z:6});
 
-each node in the tree becomes a graphnode object
+each node in the tree becomes a GraphNode object
 
 */
 //TODO: try to reduce the async stack a bit for better optimization, though in general it is advantageous matter as long as node propagation isn't 
 //   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
 
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
-export class AcyclicGraph {
+class AcyclicGraph {
     constructor() {
     
         this.nodes = new Map();
+        this.nNodes = 0;
     
         this.state = {
             pushToState:{},
@@ -120,48 +121,58 @@ export class AcyclicGraph {
     }
     
     //convert child objects to nodes
-    convertToNodes(n) {
-        if(typeof n.children === 'object') {
-            n.children = new graphnode(n.children,n,this);
-            this.convertToNodes(n.children);
-            if(n.children.tag) this.nodes.set(n.children.tag,n.children);
-        } else if (Array.isArray(n.children)) {
-            for(let i = 0; i < n.children.length; i++) {
-                n.children[i] = new graphnode(nn,n,this);
-                this.convertToNodes(n.children[i]);
-                if(n.children[i].tag) this.nodes.set(n.children[i].tag,n.children[i]);
-            }
-        } else if (typeof n.children === 'string') {
-            n.children = this.getNode(n.children);
-        }
+    convertChildrenToNodes(n) {
+        n.convertChildrenToNodes(n);
     }
 
+    //converts all children nodes and tag references to graphnodes also
     addNode(node={}) {
-        if(!node.tag) node.tag = `top${Math.floor(Math.random()*10000000)}`; //add a random id for the top index if none supplied
-        let tree = new graphnode(node,undefined,this);
-        this.convertToNodes(tree);
-        this.nodes.set(tree.tag,tree);
-        return tree;
+        let converted = new GraphNode(node,undefined,this); 
+        return converted;
     }
 
     getNode(tag) {
         return this.nodes.get(tag);
     }
 
-    removeNode(tag) {
-        this.nodes.delete(tag);
+    removeTree(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) {
+            function recursivelyRemove(node) {
+                if(node.children) {
+                    if(Array.isArray(node.children)) {
+                        node.children.forEach((c)=>{
+                            this.nodes.delete(c.tag);
+                            recursivelyRemove(c);
+                        })
+                    }
+                    else if(typeof node.children === 'object') {
+                        this.nodes.delete(node.tag);
+                        recursivelyRemove(node);
+                    }
+                }
+            }
+            this.nodes.delete(node.tag);
+            recursivelyRemove(node);
+        }
+    }
+
+    removeNode(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) this.nodes.delete(node.tag);
     }
 
     appendNode(node={}, parentNode) {
         parentNode.addChildren(node);
     }
 
-    run (node,input,origin) {
+    //Should create a sync version with no promises (will block but be faster)
+    run(node,input,origin) {
         if(typeof node === 'string') node = this.nodes.get(node);
 
         return new Promise(async (resolve) => {
             if(node) {
-                let run = (node, inp,tick=0) => {
+                let run = (node, inp, tick=0) => {
                     return new Promise (async (r) => {
                         tick++;
                         let res = await node.runOp(inp,node,origin);
@@ -216,7 +227,6 @@ export class AcyclicGraph {
 
                 let runnode = async () => {
 
-
                     let res = await run(node,input); //repeat/recurse before moving on to the parent/child
 
                     if(node.backward && node.parent) {
@@ -251,6 +261,17 @@ export class AcyclicGraph {
         });
     }
 
+    async callParent(node, input, origin=node) {
+        if(node?.parent) {
+            return await node.callParent(input, node.children, origin);
+        }
+    }
+
+    async callChildren(node, input, origin=node, idx) {
+        if(node?.children) {
+            return await node.callChildren(input, origin, idx);
+        }
+    }
 
     subscribe(tag,callback=(res)=>{}) {
         return this.state.subscribeTrigger(tag,callback);
@@ -263,11 +284,25 @@ export class AcyclicGraph {
 }
 
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
-export class graphnode {
-    constructor(node={}, parent, graph={}) {
-        Object.assign(this,node); //set the node's props as this
+//node functionality is self-contained, use a graph for organization
+class GraphNode {
+    parent;
+    children;
+    graph;
+
+    constructor(properties={}, parent, graph={}) {
+        if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
+        else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
+        Object.assign(this,properties); //set the node's props as this
         this.parent=parent;
         this.graph=graph;
+
+        if(graph) {
+            graph.nNodes++;
+            graph.nodes.set(properties.tag,this);
+        }
+
+        if(this.children) this.convertChildrenToNodes(this);
     }
 
     //I/O scheme for this node
@@ -285,9 +320,10 @@ export class graphnode {
         this.operator = operator;
     }
 
+    //run the operator
     async runOp(input,node=this,origin) {
         let result = await this.operator(input,node, origin);
-        if(this.tag) this.graph.state.setState({[this.tag]:result});
+        if(this.tag && this.graph) this.graph.state.setState({[this.tag]:result});
         return result;
     }
 
@@ -301,34 +337,42 @@ export class graphnode {
         else this.children.push(children);
     }
 
-    convertToNodes(n) {
-        if(typeof n.children === 'object') {
-            n.children = new graphnode(n.children,n,this.graph);
-            convertToNodes(n.children);
-        } else if (Array.isArray(n.children)) {
+    convertChildrenToNodes(n=this) {
+        if (Array.isArray(n.children)) {
             for(let i = 0; i < n.children.length; i++) {
-                n.children[i] = new graphnode(nn,n,this.graph);
-                convertToNodes(n.children[i]);
+                if(n.children[i].constructor.name === this.constructor.name) continue;
+                n.children[i] = new GraphNode(nn,n,this.graph);
+                this.convertChildrenToNodes(n.children[i]);
             }
         }
+        else if(typeof n.children === 'object') {
+            if(n.children.constructor.name === this.constructor.name) return;
+            n.children = new GraphNode(n.children,n,this.graph);
+            this.convertChildrenToNodes(n.children);
+        } 
+        else if (typeof n.children === 'string') {
+            n.children = this.graph.getNode(n.children);
+        }
+        return n.children;
     }
 
-    async callParent(input){
-        if(typeof this.parent?.operator === 'function') await this.parent.runOp(input,this.parent,this);
+    //Call parent node operator directly
+    async callParent(input, origin=this){
+        if(typeof this.parent?.operator === 'function') return await this.parent.runOp(input,this.parent,origin);
     }
     
-    async callChildren(input, idx){
+    async callChildren(input, origin=this, idx){
         let result;
         if(Array.isArray(this.children)) {
-            if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],this);
+            if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],origin);
             else {
                 result = [];
                 for(let i = 0; i < this.children.length; i++) {
-                    result.push(await this.children[idx]?.runOp(input,this.children[idx],this));
+                    result.push(await this.children[idx]?.runOp(input,this.children[idx],origin));
                 } 
             }
-        } else {
-            result = await this.children.runOp(input,this.children,this);
+        } else if(this.children) {
+            result = await this.children.runOp(input,this.children,origin);
         }
         return result;
     }
@@ -338,4 +382,7 @@ export class graphnode {
     }
 
 }
+
+exports.AcyclicGraph = AcyclicGraph;
+exports.GraphNode = GraphNode;
 

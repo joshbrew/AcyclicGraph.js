@@ -1,6 +1,6 @@
 {
   "name": "acyclicgraph",
-  "version": "0.1.1",
+  "version": "0.1.11",
   "description": "Easy node tree graphs for creating DAGs i.e. any arbitrary node tree with forward and backpropagation, repeaters, etc. for chaining scripts and scopes e.g. for game systems.",
   "main": "acyclicgraph.js",
   "type":"module",
