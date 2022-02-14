@@ -27,7 +27,7 @@ export class Graph extends DOMElement {
 
         this.querySelector('button').onclick = () => {
             topchildren.forEach((c)=>{
-                props.graph.run(c.props.node)
+                c.props.node.runNode(c.props.node)
             });
         }
     }
