@@ -1,5 +1,10 @@
 ## Acyclic Graphs
 
+![status](https://img.shields.io/npm/v/acyclicgraph) 
+![downloads](https://img.shields.io/npm/dt/acyclicgraph)
+![size](https://img.shields.io/github/size/brainsatplay/acyclicgraph.js/acyclicgraph.js)
+![lic](https://img.shields.io/npm/l/acyclicgraph)
+
 `npm i acyclicgraph`
 
 Easy node tree graph for creating [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) i.e. any arbitrary node tree with forward and backpropagation, repeaters, etc. for chaining scripts and scopes e.g. [game systems](https://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/). 
