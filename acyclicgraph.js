@@ -203,7 +203,7 @@ export class GraphNode {
     children;
     graph;
 
-    constructor(properties={}, parent, graph={}) {
+    constructor(properties={}, parent, graph) {
         if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
         else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
         Object.assign(this,properties); //set the node's props as this
