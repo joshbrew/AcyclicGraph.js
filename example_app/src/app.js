@@ -1,8 +1,8 @@
 import './components/components.index'
 
-let elm = document.createElement('custom-');
+//let elm = document.createElement('custom-');
 
-console.log('custom element:', elm, elm.__proto__);
+//console.log('custom element:', elm, elm.__proto__);
 
 
 

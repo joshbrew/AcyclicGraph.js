@@ -7,7 +7,11 @@ let component = require('./acyclicgraph.component.html');
 
 //See: https://github.com/brainsatplay/domelement
 export class Graph extends DOMElement {
-    props={graph:new AcyclicGraph(),nodes:[]} //can specify properties of the element which can be subscribed to for changes.
+    props={
+        
+        graph:new AcyclicGraph(),
+        nodes:[]
+    } //can specify properties of the element which can be subscribed to for changes.
     
     //set the template string or function (which can input props to return a modified string)
     template=component;
@@ -16,20 +20,25 @@ export class Graph extends DOMElement {
 
     //DOMElement custom callbacks:
     oncreate=(props)=>{
-        let children = this.querySelectorAll('graph-node');
-        if(children?.length > 0) {
-            children.forEach((n)=>{
-                props.nodes.push(n.props.node);
-            });
-        }
+        setTimeout(()=> {
+            
+            let children = Array.from(this.children);
+            let topchildren = [];
+            if(children?.length > 0) {
+                children.forEach((n)=>{
+                    console.log(n)
+                    if(n.props) props.nodes.push(n.props.node);
+                    if(n.props && n.parentNode.tagName === this.tagName) topchildren.push(n)
+                });
+            }
 
-        let topchildren = this.querySelectorAll('acyclic-graph > graph-node')
-
-        this.querySelector('button').onclick = () => {
-            topchildren.forEach((c)=>{
-                c.props.node.runNode(c.props.node)
-            });
-        }
+            this.querySelector('button').onclick = () => {
+                topchildren.forEach((c)=>{
+                    c.props.node.runNode(c.props.node,'Test')
+                });
+            }
+        }, 
+        1);
     }
 
     //onresize=(props)=>{} //on window resize

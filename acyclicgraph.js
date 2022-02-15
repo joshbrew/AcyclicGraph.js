@@ -309,6 +309,37 @@ export class GraphNode {
                         }
                         else await this.runNode(node.children,res,node);
                     }
+
+                    //can add an animationFrame coroutine, one per node //because why not
+                    if(node.animate && !node.isAnimating) {
+                        node.isAnimating = true;
+                        let anim = async () => {
+                            if(node.isAnimating) {
+                                await node.runOp( 
+                                    input,
+                                    node,
+                                    origin
+                                );
+                                requestAnimationFrame(anim);
+                            }
+                        }
+                        requestAnimationFrame(anim);
+                    }
+
+                    //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+                    if(typeof node.loop === 'number' && !node.isLooping) {
+                        node.isLooping = true;
+                        let loop = async () => {
+                            if(node.looping)  {
+                                await node.runOp( 
+                                    input,
+                                    node,
+                                    origin
+                                );
+                                setTimeout(()=>{loop()},node.loop);
+                            }
+                        }
+                    }
                     
                     return res;
                 }
@@ -339,6 +370,20 @@ export class GraphNode {
         this.parent = parent;
     }
 
+    setChildren(children) {
+        this.children = children;
+    }
+
+    //stop any loops
+    stopLooping() {
+        node.isLooping = false;
+    }
+
+    stopAnimating() {
+        node.isAnimating = false;
+    }
+
+    //append child
     addChildren(children) {
         if(!Array.isArray(this.children)) this.children = [this.children];
         if(Array.isArray(children)) this.children.push(...children);

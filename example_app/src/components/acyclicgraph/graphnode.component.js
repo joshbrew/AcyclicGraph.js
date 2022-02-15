@@ -34,25 +34,32 @@ export class NodeDiv extends DOMElement {
     }
 
     setupNode(props) {
-        if(!props.graph) {
-            let parent = this.parentNode;
-            if(parent.constructor.name === 'NodeDiv') {
-                props.parent = parent.node;
-            }
-            while(parent?.constructor.name !== 'AcyclicGraph') {
+        let parent = this.parentNode;
+        if(parent.tagName.toLowerCase() === 'graph-node') {
+            props.parent = parent;
+        }
+        if(!props.graph) {   
+            while(parent.tagName.toLowerCase() !== 'acyclic-graph') {
+                // console.log(parent)
+                // console.log(parent.tagName)
                 if(parent.constructor.name === 'HTMLBodyElement' || parent.constructor.name === 'HTMLHeadElement' || parent.constructor.name === 'HTMLHtmlElement' || parent.constructor.name === 'HTMLDocument') {
-                    console.error("No AcyclicGraph Found, error")
+                    console.error("No AcyclicGraph Found")
                     break;
                 }
                 parent = parent.parentNode;
             }
-            if(parent.constructor.name === 'AcyclicGraph') {
+            if(parent.tagName.toLowerCase() === 'acyclic-graph') {
                 props.graph = parent.props.graph;
             }
         }
         if(this.id && !props.tag) props.tag = this.id;
 
         props.node = new GraphNode(props, parent.node, props.graph);
+
+        if(props.parent) {
+            setTimeout(()=>{props.parent.props.node?.addChildren(props.node);},1);
+        }
+        
 
         props.tag = props.node.tag;
        

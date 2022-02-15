@@ -17,10 +17,10 @@
   "author": "Joshua Brewster",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "acyclicgraph": "^0.1.15",
+    "acyclicgraph": "^0.1.17",
     "anothersequencer": "^0.1.9",
     "esbuild": "^0.14.21",
-    "fragelement": "^1.2.0"
+    "fragelement": "^1.2.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.15",

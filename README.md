@@ -53,6 +53,8 @@ let tree = { //top level should be an object, children can be arrays of objects
     delay:1000//, //can timeout the operation
     //frame:true //can have the operation run via requestAnimationFrame (throttling)
     //repeat:3 //can repeat an operator, or use "recursive" for the same but passing the node's result back in
+    //loop: 10 //can add a loop subroutine, the node will only run the loop once and can still be called. Specify milliseconds. Stop with node.stopLooping()
+    //animate: true //can add a requestAnimationFrame subroutine. Stop with node.stopAnimating()
 };
 
 

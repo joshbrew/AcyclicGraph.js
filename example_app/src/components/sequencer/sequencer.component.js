@@ -39,4 +39,4 @@ export class SeqGraph extends DOMElement {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(Graph,'sequencer-');
+addCustomElement(SeqGraph,'sequencer-');
