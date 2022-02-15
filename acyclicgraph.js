@@ -320,7 +320,7 @@ export class GraphNode {
                                     node,
                                     origin
                                 );
-                                requestAnimationFrame(anim);
+                                requestAnimationFrame(async ()=>{await anim();});
                             }
                         }
                         requestAnimationFrame(anim);
@@ -336,7 +336,7 @@ export class GraphNode {
                                     node,
                                     origin
                                 );
-                                setTimeout(()=>{loop()},node.loop);
+                                setTimeout(async ()=>{await loop();},node.loop);
                             }
                         }
                     }
