@@ -55,7 +55,7 @@ each node in the tree becomes a GraphNode object
 //   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
 
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
-class AcyclicGraph {
+export class AcyclicGraph {
     constructor() {
     
         this.nodes = new Map();
@@ -198,7 +198,7 @@ class AcyclicGraph {
 
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
 //node functionality is self-contained, use a graph for organization
-class GraphNode {
+export class GraphNode {
     parent;
     children;
     graph;
@@ -391,6 +391,6 @@ class GraphNode {
 
 }
 
-exports.AcyclicGraph = AcyclicGraph;
-exports.GraphNode = GraphNode;
+// exports.AcyclicGraph = AcyclicGraph;
+// exports.GraphNode = GraphNode;
 

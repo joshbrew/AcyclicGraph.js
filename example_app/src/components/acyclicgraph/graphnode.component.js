@@ -9,7 +9,8 @@ let component = require('./graphnode.component.html');
 export class NodeDiv extends DOMElement {
     props={
         tag:undefined,
-        operator:(input,node,origin)=>{},
+        input:undefined,
+        operator:(input,node,origin)=>{ console.log(input); return input; },
         forward:true,
         backward:false,
         children:undefined,
@@ -26,6 +27,10 @@ export class NodeDiv extends DOMElement {
     //DOMElement custom callbacks:
     oncreate=(props)=>{
         this.setupNode(props)
+
+        if(props.input) { //e.g. run the node on input
+            props.node.runNode(props.node,props.input,undefined);
+        }
     }
 
     setupNode(props) {
