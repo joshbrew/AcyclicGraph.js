@@ -7,7 +7,7 @@
 
 `npm i acyclicgraph`
 
-Easy node tree graph for creating [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) i.e. any arbitrary node tree with forward and backpropagation, repeaters, etc. for chaining scripts and scopes e.g. [game systems](https://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/). 
+Easy node tree graph for creating graphs like [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) i.e. any arbitrary node tree with forward and backpropagation, repeaters, etc. for chaining scripts and scopes e.g. [game systems](https://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/). You can construct any type of graph and run async coroutines etc.
 
 This is built around the idea of having an operator i.e. a custom i/o handler at each scope. You can easily extend the graphnode class with primitives etc for different systems, just read the code. Otherwise it's a pure javascript implementation with no dependencies.
 
@@ -65,6 +65,9 @@ graph.run(tree.tag,{x:4,y:5,z:6});
 ```
 
 ### Design Philosophy
+
+Graphs simply are a way to manage operation sequences. These can be directed or undirected, and can have cycles on some nodes (technically not acyclic) with single trees or multiple running concurrently e.g. an animation loop and then event loops for user or server inputs<br/>
+![DAG-and-not-DAG-768x321](https://user-images.githubusercontent.com/18196383/153975071-34ae096e-2bfa-4564-a1ec-4e21989806ad.png)
 
 Acyclic graphs are trees of operations with arbitrary entry and exit points plus arbitrary propagation of results through the tree.
 Each node is an object with a few required properties and functions and then anything else you want to add as variables, reference, utility functions etc. 
