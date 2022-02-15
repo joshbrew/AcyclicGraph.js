@@ -57,12 +57,16 @@ export class NodeDiv extends DOMElement {
         props.node = new GraphNode(props, parent.node, props.graph);
 
         if(props.parent) {
-            setTimeout(()=>{props.parent.props.node?.addChildren(props.node);},1);
+            setTimeout(()=>{
+                console.log(props.node,props.parent.node)
+                props.parent.props.node?.addChildren(props.node);
+                console.log(props.parent.props.node.children)
+            },2);
         }
-        
 
         props.tag = props.node.tag;
        
+
         if(!this.id) this.id = props.tag;
 
     }

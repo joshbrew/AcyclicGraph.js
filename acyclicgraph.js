@@ -385,8 +385,9 @@ export class GraphNode {
 
     //append child
     addChildren(children) {
-        if(!Array.isArray(this.children)) this.children = [this.children];
-        if(Array.isArray(children)) this.children.push(...children);
+        if(!this.children) this.children = [];
+        if(!Array.isArray(this.children) && this.children) this.children = [this.children];
+        else if(Array.isArray(children)) this.children.push(...children);
         else this.children.push(children);
     }
 

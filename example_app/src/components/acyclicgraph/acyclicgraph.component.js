@@ -26,7 +26,6 @@ export class Graph extends DOMElement {
             let topchildren = [];
             if(children?.length > 0) {
                 children.forEach((n)=>{
-                    console.log(n)
                     if(n.props) props.nodes.push(n.props.node);
                     if(n.props && n.parentNode.tagName === this.tagName) topchildren.push(n)
                 });
