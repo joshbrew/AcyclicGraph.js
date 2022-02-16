@@ -9,6 +9,7 @@ let component = require('./canvasnode.component.html');
 export class CanvasNodeDiv extends NodeDiv {
     props={
         radius:20,
+        triggered:false,
 
         operator:(
             input,
@@ -16,10 +17,8 @@ export class CanvasNodeDiv extends NodeDiv {
             origin,
             cmd
         )=>{ 
-
-            if(typeof input === 'object') {
-                if(input.radius) this.props.radius = input.radius;
-            } else {
+            
+            if(!this.props.triggered) {
                 this.props.radius += Math.random()-0.5;
                 if(this.props.radius <= 1) this.props.radius = 1
             }
@@ -27,6 +26,7 @@ export class CanvasNodeDiv extends NodeDiv {
             if(cmd === 'animate') {
                 let canvas = this.props.canvas;
                 let ctx = this.props.ctx;
+                ctx.clearRect(0,0,canvas.width,canvas.height);
                 this.drawCircle(
                     canvas.width*0.5,
                     canvas.height*0.5,
@@ -35,6 +35,21 @@ export class CanvasNodeDiv extends NodeDiv {
                     5,
                     '#003300'
                 );
+            } else {
+                if(typeof input === 'object') {
+                    if(input.radius) this.props.radius += input.radius;
+                    this.props.triggered = true;
+                } else if (typeof input === 'number') {
+                    this.props.radius += input;
+                    this.props.triggered = true;
+                } else if (typeof input === 'string') {
+                    this.props.radius += parseFloat(input);
+                    this.props.triggered = true;
+                } else {
+                    this.props.radius += Math.random()-0.5;
+                    if(this.props.radius <= 1) this.props.radius = 1;
+                    this.props.triggered = true;
+                }
             }
         },
         forward:true, //pass output to child nodes

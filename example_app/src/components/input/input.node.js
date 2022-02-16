@@ -3,12 +3,15 @@ import {addCustomElement} from 'fragelement';
 
 import {NodeDiv} from '../acyclicgraph/graphnode.component'
 
-let component = require('./templatenode.component.html');
+let component = require('./input.node.html');
 
 //See: https://github.com/brainsatplay/domelement
-export class TemplateNodeDiv extends NodeDiv {
+export class InputNode extends NodeDiv {
     props={
-        operator:(input,node,origin,cmd)=>{ console.log(input); return input; }, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
+        operator:(input,node,origin,cmd)=>{ 
+            this.props.input = input;
+            return input; 
+        }, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
         forward:true, //pass output to child nodes
         backward:false, //pass output to parent node
         children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
@@ -27,7 +30,15 @@ export class TemplateNodeDiv extends NodeDiv {
     template=component;
     
     //DOMElement custom callbacks:
-    //oncreate=(props)=>{} //after rendering
+    oncreate=(props)=>{
+        let input = this.querySelector('input');
+        input.type = this.type;
+
+        input.oninput = (ev) => {
+            if(props.node) props.node.callChildren(ev.target.value); 
+            //passes inputs to child nodes without triggering them to pass on
+        }
+    } //after rendering
     //onresize=(props)=>{} //on window resize
     //onchanged=(props)=>{} //on props changed
     //ondelete=(props)=>{} //on element deleted. Can remove with this.delete() which runs cleanup functions
@@ -35,4 +46,4 @@ export class TemplateNodeDiv extends NodeDiv {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(TemplateNodeDiv,'template-node');
+addCustomElement(InputNode,'input-node');

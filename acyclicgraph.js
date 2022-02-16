@@ -138,7 +138,7 @@ export class AcyclicGraph {
     run(node,input,origin) {
         if(typeof node === 'string') node = this.nodes.get(node);
         if(node)
-            return node.run(node,input,origin)
+            return node.run(input,node,origin)
         else return undefined;
     }
 
@@ -260,9 +260,17 @@ async runOp(input,node=this,origin,cmd) {
     return result;
 }
 
+//Should create a sync version with no promises (will block but be faster)
+runNode(node,input,origin) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node)
+        return node.run(input,node,origin)
+    else return undefined;
+}
+
 //runs the node sequence
 //Should create a sync version with no promises (will block but be faster)
-run(node=this,input,origin) {
+run(input,node=this,origin) {
     if(typeof node === 'string') 
         {
             let fnd;
@@ -277,7 +285,7 @@ run(node=this,input,origin) {
             let run = (node, inp, tick=0) => {
                 return new Promise (async (r) => {
                     tick++;
-                    let res = await node.runOp(inp,node,origin);
+                    let res = await node.runOp(inp,node,origin,tick);
                     if(typeof node.repeat === 'number') {
                         while(tick < node.repeat) {
                             if(node.delay) {
@@ -291,7 +299,7 @@ run(node=this,input,origin) {
                                 });
                                 break;
                             }
-                            else res = await node.runOp(inp,node,origin);
+                            else res = await node.runOp(inp,node,origin,tick);
                             tick++;
                         }
                         if(tick === node.repeat) {
@@ -312,7 +320,7 @@ run(node=this,input,origin) {
                                 });
                                 break;
                             }
-                            else res = await node.runOp(res,node,origin);
+                            else res = await node.runOp(res,node,origin,tick);
                             tick++;
                         }
                         if(tick === node.recursive) {
@@ -496,14 +504,6 @@ getNode(tag) {
     return this.nodes.get(tag);
 }
 
-//Should create a sync version with no promises (will block but be faster)
-runNode(node,input,origin) {
-    if(typeof node === 'string') node = this.nodes.get(node);
-    if(node)
-        return node.run(node,input,origin)
-    else return undefined;
-}
-
 //stop any loops
 stopLooping() {
     node.isLooping = false;
@@ -580,7 +580,7 @@ async callChildren(input, origin=this, cmd, idx){
         else {
             result = [];
             for(let i = 0; i < this.children.length; i++) {
-                result.push(await this.children[idx]?.runOp(input,this.children[idx],origin,cmd));
+                result.push(await this.children[i]?.runOp(input,this.children[i],origin,cmd));
             } 
         }
     } else if(this.children) {
