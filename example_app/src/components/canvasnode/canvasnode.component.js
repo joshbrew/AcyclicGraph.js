@@ -28,8 +28,8 @@ export class CanvasNodeDiv extends NodeDiv {
                 let canvas = this.props.canvas;
                 let ctx = this.props.ctx;
                 this.drawCircle(
-                    canvas.height*0.5,
                     canvas.width*0.5,
+                    canvas.height*0.5,
                     this.props.radius,
                     'green',
                     5,
@@ -90,6 +90,12 @@ export class CanvasNodeDiv extends NodeDiv {
             this.canvas.height = props.height;
             this.canvas.style.height = props.height;
         }
+        if(props.style) {
+            this.canvas.style = props.style;
+            this.canvas.height = this.canvas.clientHeight;
+            this.canvas.width = this.canvas.clientWidth;
+
+        }
 
         props.canvas = this.canvas;
         if(props.context) props.context = this.canvas.getContext(props.context);
@@ -104,9 +110,9 @@ export class CanvasNodeDiv extends NodeDiv {
 
     //after rendering
     onresize=(props)=>{
-        if(props.canvas) {
-            props.canvas.height = this.clientHeight;
-            props.canvas.width = this.clientWidth;
+        if(this.canvas) {
+            this.canvas.width = this.canvas.clientWidth;
+            this.canvas.height = this.canvas.clientHeight;
         }
     } //on window resize
     //onchanged=(props)=>{} //on props changed
