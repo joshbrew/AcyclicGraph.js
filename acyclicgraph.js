@@ -113,85 +113,113 @@ export const state = {
 }
 
 export class AcyclicGraph {
-state = state;
-nodes = new Map()
-nNodes = 0
+    state = state;
+    nodes = new Map()
+    nNodes = 0
 
-constructor() {}
+    constructor() {}
 
-//convert child objects to nodes
-convertChildrenToNodes(n) {
-    n.convertChildrenToNodes(n);
-}
+    //convert child objects to nodes
+    convertChildrenToNodes(n) {
+        n.convertChildrenToNodes(n);
+    }
 
-//converts all children nodes and tag references to graphnodes also
-addNode(node={}) {
-    let converted = new GraphNode(node,undefined,this); 
-    return converted;
-}
+    //converts all children nodes and tag references to graphnodes also
+    addNode(node={}) {
+        let converted = new GraphNode(node,undefined,this); 
+        return converted;
+    }
 
-getNode(tag) {
-    return this.nodes.get(tag);
-}
+    getNode(tag) {
+        return this.nodes.get(tag);
+    }
 
-//Should create a sync version with no promises (will block but be faster)
-run(node,input,origin) {
-    if(typeof node === 'string') node = this.nodes.get(node);
-    if(node)
-        return node.run(node,input,origin)
-    else return undefined;
-}
+    //Should create a sync version with no promises (will block but be faster)
+    run(node,input,origin) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node)
+            return node.run(node,input,origin)
+        else return undefined;
+    }
 
-removeTree(node) {
-    if(typeof node === 'string') node = this.nodes.get(node);
-    if(node) {
-        function recursivelyRemove(node) {
-            if(node.children) {
-                if(Array.isArray(node.children)) {
-                    node.children.forEach((c)=>{
-                        this.nodes.delete(c.tag);
-                        recursivelyRemove(c);
-                    })
-                }
-                else if(typeof node.children === 'object') {
-                    this.nodes.delete(node.tag);
-                    recursivelyRemove(node);
+    removeTree(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) {
+            function recursivelyRemove(node) {
+                if(node.children) {
+                    if(Array.isArray(node.children)) {
+                        node.children.forEach((c)=>{
+                            if(c.stopNode) c.stopNode();
+                            if(c.tag) {
+                                if(this.nodes.get(c.tag)) this.nodes.delete(c.tag);
+                            }
+                            this.nodes.forEach((n) => {
+                                if(n.nodes.get(c.tag)) n.nodes.delete(c.tag);
+                            });
+                            recursivelyRemove(c);
+                        })
+                    }
+                    else if(typeof node.children === 'object') {
+                        if(node.stopNode) node.stopNode();
+                        if(node.tag) {
+                            if(this.nodes.get(node.tag)) this.nodes.delete(node.tag);
+                        }
+                        this.nodes.forEach((n) => {
+                            if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+                        });
+                        recursivelyRemove(node);
+                    }
                 }
             }
+            if(node.stopNode) node.stopNode();
+            if(node.tag) {
+                this.nodes.delete(node.tag);
+                this.nodes.forEach((n) => {
+                    if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+                });
+                recursivelyRemove(node);
+            }
         }
-        this.nodes.delete(node.tag);
-        recursivelyRemove(node);
     }
-}
 
-removeNode(node) {
-    if(typeof node === 'string') node = this.nodes.get(node);
-    if(node) this.nodes.delete(node.tag);
-}
-
-appendNode(node={}, parentNode) {
-    parentNode.addChildren(node);
-}
-
-async callParent(node, input, origin=node) {
-    if(node?.parent) {
-        return await node.callParent(input, node.children, origin);
+    removeNode(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node?.tag) this.nodes.delete(node.tag);
+        if(node?.tag) {
+            if(this.nodes.get(node.tag)) 
+            {
+                this.nodes.delete(node.tag);
+                if(this.graph) this.graph.nodes.delete(node.tag);
+                this.nodes.forEach((n) => {
+                    if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+                });
+            }
+        }
     }
-}
 
-async callChildren(node, input, origin=node, idx) {
-    if(node?.children) {
-        return await node.callChildren(input, origin, idx);
+    appendNode(node={}, parentNode) {
+        parentNode.addChildren(node);
     }
-}
 
-subscribe(tag,callback=(res)=>{}) {
-    return this.state.subscribeTrigger(tag,callback);
-}
+    async callParent(node, input, origin=node) {
+        if(node?.parent) {
+            return await node.callParent(input, node.children, origin);
+        }
+    }
 
-unsubscribe(tag,sub) {
-    this.state.unsubscribeTrigger(tag,sub);
-}
+    async callChildren(node, input, origin=node, idx) {
+        if(node?.children) {
+            return await node.callChildren(input, origin, idx);
+        }
+    }
+
+    subscribe(tag,callback=(res)=>{}) {
+        return this.state.subscribeTrigger(tag,callback);
+    }
+
+    unsubscribe(tag,sub) {
+        this.state.unsubscribeTrigger(tag,sub);
+    }
 
 }
 
@@ -205,11 +233,11 @@ graph;
 state = state; //shared trigger state
 nodes = new Map();
 
-constructor(properties={}, parent, graph) {
+constructor(properties={}, parentNode, graph) {
     if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
     else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
     Object.assign(this,properties); //set the node's props as this
-    this.parent=parent;
+    this.parent=parentNode;
     this.graph=graph;
 
     if(graph) {
@@ -379,7 +407,6 @@ setChildren(children) {
     this.children = children;
 }
 
-
 removeTree(node) {
     if(typeof node === 'string') node = this.nodes.get(node);
     if(node) {
@@ -387,18 +414,37 @@ removeTree(node) {
             if(node.children) {
                 if(Array.isArray(node.children)) {
                     node.children.forEach((c)=>{
-                        this.nodes.delete(c.tag);
+                        if(c.stopNode) c.stopNode();
+                        if(c.tag) {
+                            if(this.nodes.get(c.tag)) this.nodes.delete(c.tag);
+                        }
+                        this.nodes.forEach((n) => {
+                            if(n.nodes.get(c.tag)) n.nodes.delete(c.tag);
+                        });
                         recursivelyRemove(c);
                     })
                 }
                 else if(typeof node.children === 'object') {
-                    this.nodes.delete(node.tag);
+                    if(node.stopNode) node.stopNode();
+                    if(node.tag) {
+                        if(this.nodes.get(node.tag)) this.nodes.delete(node.tag);
+                    }
+                    this.nodes.forEach((n) => {
+                        if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+                    });
                     recursivelyRemove(node);
                 }
             }
         }
-        this.nodes.delete(node.tag);
-        recursivelyRemove(node);
+        if(node.stopNode) node.stopNode();
+        if(node.tag) {
+            this.nodes.delete(node.tag);
+            this.nodes.forEach((n) => {
+                if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+            });
+            recursivelyRemove(node);
+            if(this.graph) this.graph.nodes.removeTree(node); //remove from parent graph too 
+        }
     }
 }
 
@@ -406,12 +452,23 @@ removeTree(node) {
 addNode(node={}) {
     let converted = new GraphNode(node,this,this.graph); 
     this.nodes.set(converted);
+    if(this.graph) this.graph.nodes.set(converted);
     return converted;
 }
 
 removeNode(node) {
     if(typeof node === 'string') node = this.nodes.get(node);
-    if(node) this.nodes.delete(node.tag);
+    if(node?.tag) this.nodes.delete(node.tag);
+    if(node?.tag) {
+        if(this.nodes.get(node.tag)) 
+        {
+            this.nodes.delete(node.tag);
+            if(this.graph) this.graph.nodes.delete(node.tag);
+            this.nodes.forEach((n) => {
+                if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
+            });
+        }
+    }
 }
 
 appendNode(node, parentNode=this) {
@@ -438,6 +495,11 @@ stopLooping() {
 
 stopAnimating() {
     node.isAnimating = false;
+}
+
+stopNode() {
+    this.stopAnimating();
+    this.stopLooping();
 }
 
 //append child
