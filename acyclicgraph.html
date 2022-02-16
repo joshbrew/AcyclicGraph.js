@@ -4,70 +4,70 @@
     Check Console (F12), hit F5 with the console up to see the sequences play
 <script>
     //Joshua Brewster and Garrett Flynn AGPLv3.0
-class AcyclicGraph {
-    constructor() {
-    
-        this.nodes = new Map();
-        this.nNodes = 0;
-    
-        this.state = {
-            pushToState:{},
-            data:{},
-            triggers:{},
-            setState(updateObj){
-                Object.assign(this.pushToState,updateObj);
-        
-                if(Object.keys(this.triggers).length > 0) {
-                    // Object.assign(this.data,this.pushToState);
-                    for (const prop of Object.getOwnPropertyNames(this.triggers)) {
-                        if(this.pushToState[prop]) {
-                            this.data[prop] = this.pushToState[prop]
-                            delete this.pushToState[prop];
-                            this.triggers[prop].forEach((obj)=>{
-                                obj.onchange(this.data[prop]);
-                            });
-                        }
-                    }
-                }
 
-                return this.pushToState;
-            },
-            subscribeTrigger(key,onchange=(res)=>{}){
-                if(key) {
-                    if(!this.triggers[key]) {
-                        this.triggers[key] = [];
-                    }
-                    let l = this.triggers[key].length;
-                    this.triggers[key].push({idx:l, onchange:onchange});
-                    return this.triggers[key].length-1;
-                } else return undefined;
-            },
-            unsubscribeTrigger(key,sub){
-                let idx = undefined;
-                let triggers = this.triggers[key]
-                if (triggers){
-                    if(!sub) delete this.triggers[key];
-                    else {
-                        let obj = triggers.find((o)=>{
-                            if(o.idx===sub) {return true;}
+const state = {
+        pushToState:{},
+        data:{},
+        triggers:{},
+        setState(updateObj){
+            Object.assign(this.pushToState,updateObj);
+    
+            if(Object.keys(this.triggers).length > 0) {
+                // Object.assign(this.data,this.pushToState);
+                for (const prop of Object.getOwnPropertyNames(this.triggers)) {
+                    if(this.pushToState[prop]) {
+                        this.data[prop] = this.pushToState[prop]
+                        delete this.pushToState[prop];
+                        this.triggers[prop].forEach((obj)=>{
+                            obj.onchange(this.data[prop]);
                         });
-                        if(obj) triggers.splice(idx,1);
-                        return true;
                     }
                 }
-            },
-            subscribeTriggerOnce(key=undefined,onchange=(value)=>{}) {
-                let sub;
-                let changed = (value) => {
-                    onchange(value);
-                    this.unsubscribeTrigger(key,sub);
-                }
-
-                sub = this.subscribeTrigger(key,changed);
             }
+
+            return this.pushToState;
+        },
+        subscribeTrigger(key,onchange=(res)=>{}){
+            if(key) {
+                if(!this.triggers[key]) {
+                    this.triggers[key] = [];
+                }
+                let l = this.triggers[key].length;
+                this.triggers[key].push({idx:l, onchange:onchange});
+                return this.triggers[key].length-1;
+            } else return undefined;
+        },
+        unsubscribeTrigger(key,sub){
+            let idx = undefined;
+            let triggers = this.triggers[key]
+            if (triggers){
+                if(!sub) delete this.triggers[key];
+                else {
+                    let obj = triggers.find((o)=>{
+                        if(o.idx===sub) {return true;}
+                    });
+                    if(obj) triggers.splice(idx,1);
+                    return true;
+                }
+            }
+        },
+        subscribeTriggerOnce(key=undefined,onchange=(value)=>{}) {
+            let sub;
+            let changed = (value) => {
+                onchange(value);
+                this.unsubscribeTrigger(key,sub);
+            }
+
+            sub = this.subscribeTrigger(key,changed);
         }
-        
-    }
+}
+
+class AcyclicGraph {
+    state = state;
+    nodes = new Map()
+    nNodes = 0
+
+    constructor() {}
     
     //convert child objects to nodes
     convertChildrenToNodes(n) {
@@ -88,7 +88,7 @@ class AcyclicGraph {
     run(node,input,origin) {
         if(typeof node === 'string') node = this.nodes.get(node);
         if(node)
-            return node.runNode(node,input,origin)
+            return node.run(node,input,origin)
         else return undefined;
     }
 
@@ -148,9 +148,12 @@ class AcyclicGraph {
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
 //node functionality is self-contained, use a graph for organization
 class GraphNode {
+    tag;
     parent;
     children;
     graph;
+    state = state; //shared trigger state
+    nodes = new Map();
 
     constructor(properties={}, parent, graph) {
         if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
@@ -175,17 +178,20 @@ class GraphNode {
     //run the operator
     async runOp(input,node=this,origin) {
         let result = await this.operator(input,node, origin);
-        if(this.tag && this.graph) this.graph.state.setState({[this.tag]:result});
+        if(this.tag) this.state.setState({[this.tag]:result});
         return result;
     }
 
     //runs the node sequence
     //Should create a sync version with no promises (will block but be faster)
-    runNode(node=this,input,origin) {
+    run(node=this,input,origin) {
         if(typeof node === 'string') 
             {
-                if(!this.graph) return undefined;
-                node = this.graph.nodes.get(node);
+                let fnd;
+                if(this.graph) fnd = this.graph.nodes.get(node);
+                if(!fnd) fnd = this.nodes.get(node);
+                node = fnd;
+                if(!node) return undefined;
             }
 
         return new Promise(async (resolve) => {
@@ -248,7 +254,7 @@ class GraphNode {
                     let res = await run(node,input); //repeat/recurse before moving on to the parent/child
 
                     if(node.backward && node.parent) {
-                        await this.runNode(node.parent,res,node)
+                        await this.runNode(node.parent,res,node);
                     }
                     if(node.children && node.forward) {
                         if(Array.isArray(node.children)) {
@@ -323,12 +329,63 @@ class GraphNode {
         this.children = children;
     }
 
-    //stop looping
+    
+    removeTree(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) {
+            function recursivelyRemove(node) {
+                if(node.children) {
+                    if(Array.isArray(node.children)) {
+                        node.children.forEach((c)=>{
+                            this.nodes.delete(c.tag);
+                            recursivelyRemove(c);
+                        })
+                    }
+                    else if(typeof node.children === 'object') {
+                        this.nodes.delete(node.tag);
+                        recursivelyRemove(node);
+                    }
+                }
+            }
+            this.nodes.delete(node.tag);
+            recursivelyRemove(node);
+        }
+    }
+
+    //converts all children nodes and tag references to graphnodes also
+    addNode(node={}) {
+        let converted = new GraphNode(node,this,this.graph); 
+        this.nodes.set(converted);
+        return converted;
+    }
+    
+    removeNode(node) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) this.nodes.delete(node.tag);
+    }
+
+    appendNode(node, parentNode=this) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node) parentNode.addChildren(node);
+    }
+
+    getNode(tag) {
+        return this.nodes.get(tag);
+    }
+
+    //Should create a sync version with no promises (will block but be faster)
+    runNode(node,input,origin) {
+        if(typeof node === 'string') node = this.nodes.get(node);
+        if(node)
+            return node.run(node,input,origin)
+        else return undefined;
+    }
+
+    //stop any loops
     stopLooping() {
         node.isLooping = false;
     }
 
-    //stop animating
     stopAnimating() {
         node.isAnimating = false;
     }
@@ -342,20 +399,43 @@ class GraphNode {
     }
 
     convertChildrenToNodes(n=this) {
-        if (Array.isArray(n.children)) {
+        if(n.children?.name === 'GraphNode') { 
+            if(!this.graph?.nodes.get(n.tag)) this.graph.nodes.set(n.tag);
+            if(!this.nodes.get(n.tag)) this.nodes.set(n.tag); 
+        }
+        else if (Array.isArray(n.children)) {
             for(let i = 0; i < n.children.length; i++) {
-                if(n.children[i].constructor.name === this.constructor.name) continue;
-                n.children[i] = new GraphNode(nn,n,this.graph);
-                this.convertChildrenToNodes(n.children[i]);
+                if(n.children[i].name === 'GraphNode') { 
+                    if(!this.graph?.nodes.get(n.children[i].tag)) this.graph.nodes.set(n.children[i].tag);
+                    if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i].tag);
+                    continue; 
+                }
+                else if(typeof n.children[i] === 'object') {
+                    n.children[i] = new GraphNode(n.children[i],n,this.graph);
+                    this.nodes.set(n.children[i].tag);
+                    this.convertChildrenToNodes(n.children[i]);
+                } 
+                else if (typeof n.children[i] === 'string') {
+                    if(this.graph) {
+                        n.children[i] = this.graph.getNode(n.children[i]); //try graph scope
+                        if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i]);
+                    }
+                    if(!n.children[i]) n.children[i] = this.nodes.get(n.children[i]); //try local scope
+                }
+                
             }
         }
         else if(typeof n.children === 'object') {
-            if(n.children.constructor.name === this.constructor.name) return;
             n.children = new GraphNode(n.children,n,this.graph);
+            this.nodes.set(n.children.tag);
             this.convertChildrenToNodes(n.children);
         } 
         else if (typeof n.children === 'string') {
-            n.children = this.graph.getNode(n.children);
+            if(this.graph) {
+                n.children = this.graph.getNode(n.children); //try graph scope
+                if(!this.nodes.get(n.children.tag)) this.nodes.set(n.children);
+            }
+            if(!n.children) n.children = this.nodes.get(n.children); //try local scope
         }
         return n.children;
     }
@@ -383,6 +463,14 @@ class GraphNode {
 
     setProps(props={}) {
         Object.assign(this,props);
+    }
+    
+    subscribe(tag=this.tag,callback=(res)=>{}) {
+        return this.state.subscribeTrigger(tag,callback);
+    }
+
+    unsubscribe(tag=this.tag,sub) {
+        this.state.unsubscribeTrigger(tag,sub);
     }
 
 }

@@ -55,387 +55,476 @@ each node in the tree becomes a GraphNode object
 //   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
 
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
+export const state = {
+    pushToState:{},
+    data:{},
+    triggers:{},
+    setState(updateObj){
+        Object.assign(this.pushToState,updateObj);
+
+        if(Object.keys(this.triggers).length > 0) {
+            // Object.assign(this.data,this.pushToState);
+            for (const prop of Object.getOwnPropertyNames(this.triggers)) {
+                if(this.pushToState[prop]) {
+                    this.data[prop] = this.pushToState[prop]
+                    delete this.pushToState[prop];
+                    this.triggers[prop].forEach((obj)=>{
+                        obj.onchange(this.data[prop]);
+                    });
+                }
+            }
+        }
+
+        return this.pushToState;
+    },
+    subscribeTrigger(key,onchange=(res)=>{}){
+        if(key) {
+            if(!this.triggers[key]) {
+                this.triggers[key] = [];
+            }
+            let l = this.triggers[key].length;
+            this.triggers[key].push({idx:l, onchange:onchange});
+            return this.triggers[key].length-1;
+        } else return undefined;
+    },
+    unsubscribeTrigger(key,sub){
+        let idx = undefined;
+        let triggers = this.triggers[key]
+        if (triggers){
+            if(!sub) delete this.triggers[key];
+            else {
+                let obj = triggers.find((o)=>{
+                    if(o.idx===sub) {return true;}
+                });
+                if(obj) triggers.splice(idx,1);
+                return true;
+            }
+        }
+    },
+    subscribeTriggerOnce(key=undefined,onchange=(value)=>{}) {
+        let sub;
+        let changed = (value) => {
+            onchange(value);
+            this.unsubscribeTrigger(key,sub);
+        }
+
+        sub = this.subscribeTrigger(key,changed);
+    }
+}
+
 export class AcyclicGraph {
-    constructor() {
-    
-        this.nodes = new Map();
-        this.nNodes = 0;
-    
-        this.state = {
-            pushToState:{},
-            data:{},
-            triggers:{},
-            setState(updateObj){
-                Object.assign(this.pushToState,updateObj);
-        
-                if(Object.keys(this.triggers).length > 0) {
-                    // Object.assign(this.data,this.pushToState);
-                    for (const prop of Object.getOwnPropertyNames(this.triggers)) {
-                        if(this.pushToState[prop]) {
-                            this.data[prop] = this.pushToState[prop]
-                            delete this.pushToState[prop];
-                            this.triggers[prop].forEach((obj)=>{
-                                obj.onchange(this.data[prop]);
-                            });
-                        }
-                    }
+state = state;
+nodes = new Map()
+nNodes = 0
+
+constructor() {}
+
+//convert child objects to nodes
+convertChildrenToNodes(n) {
+    n.convertChildrenToNodes(n);
+}
+
+//converts all children nodes and tag references to graphnodes also
+addNode(node={}) {
+    let converted = new GraphNode(node,undefined,this); 
+    return converted;
+}
+
+getNode(tag) {
+    return this.nodes.get(tag);
+}
+
+//Should create a sync version with no promises (will block but be faster)
+run(node,input,origin) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node)
+        return node.run(node,input,origin)
+    else return undefined;
+}
+
+removeTree(node) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node) {
+        function recursivelyRemove(node) {
+            if(node.children) {
+                if(Array.isArray(node.children)) {
+                    node.children.forEach((c)=>{
+                        this.nodes.delete(c.tag);
+                        recursivelyRemove(c);
+                    })
                 }
-
-                return this.pushToState;
-            },
-            subscribeTrigger(key,onchange=(res)=>{}){
-                if(key) {
-                    if(!this.triggers[key]) {
-                        this.triggers[key] = [];
-                    }
-                    let l = this.triggers[key].length;
-                    this.triggers[key].push({idx:l, onchange:onchange});
-                    return this.triggers[key].length-1;
-                } else return undefined;
-            },
-            unsubscribeTrigger(key,sub){
-                let idx = undefined;
-                let triggers = this.triggers[key]
-                if (triggers){
-                    if(!sub) delete this.triggers[key];
-                    else {
-                        let obj = triggers.find((o)=>{
-                            if(o.idx===sub) {return true;}
-                        });
-                        if(obj) triggers.splice(idx,1);
-                        return true;
-                    }
-                }
-            },
-            subscribeTriggerOnce(key=undefined,onchange=(value)=>{}) {
-                let sub;
-                let changed = (value) => {
-                    onchange(value);
-                    this.unsubscribeTrigger(key,sub);
-                }
-
-                sub = this.subscribeTrigger(key,changed);
-            }
-        }
-        
-    }
-    
-    //convert child objects to nodes
-    convertChildrenToNodes(n) {
-        n.convertChildrenToNodes(n);
-    }
-
-    //converts all children nodes and tag references to graphnodes also
-    addNode(node={}) {
-        let converted = new GraphNode(node,undefined,this); 
-        return converted;
-    }
-
-    getNode(tag) {
-        return this.nodes.get(tag);
-    }
-
-    //Should create a sync version with no promises (will block but be faster)
-    run(node,input,origin) {
-        if(typeof node === 'string') node = this.nodes.get(node);
-        if(node)
-            return node.runNode(node,input,origin)
-        else return undefined;
-    }
-
-    removeTree(node) {
-        if(typeof node === 'string') node = this.nodes.get(node);
-        if(node) {
-            function recursivelyRemove(node) {
-                if(node.children) {
-                    if(Array.isArray(node.children)) {
-                        node.children.forEach((c)=>{
-                            this.nodes.delete(c.tag);
-                            recursivelyRemove(c);
-                        })
-                    }
-                    else if(typeof node.children === 'object') {
-                        this.nodes.delete(node.tag);
-                        recursivelyRemove(node);
-                    }
+                else if(typeof node.children === 'object') {
+                    this.nodes.delete(node.tag);
+                    recursivelyRemove(node);
                 }
             }
-            this.nodes.delete(node.tag);
-            recursivelyRemove(node);
         }
+        this.nodes.delete(node.tag);
+        recursivelyRemove(node);
     }
+}
 
-    removeNode(node) {
-        if(typeof node === 'string') node = this.nodes.get(node);
-        if(node) this.nodes.delete(node.tag);
-    }
+removeNode(node) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node) this.nodes.delete(node.tag);
+}
 
-    appendNode(node={}, parentNode) {
-        parentNode.addChildren(node);
-    }
+appendNode(node={}, parentNode) {
+    parentNode.addChildren(node);
+}
 
-    async callParent(node, input, origin=node) {
-        if(node?.parent) {
-            return await node.callParent(input, node.children, origin);
-        }
+async callParent(node, input, origin=node) {
+    if(node?.parent) {
+        return await node.callParent(input, node.children, origin);
     }
+}
 
-    async callChildren(node, input, origin=node, idx) {
-        if(node?.children) {
-            return await node.callChildren(input, origin, idx);
-        }
+async callChildren(node, input, origin=node, idx) {
+    if(node?.children) {
+        return await node.callChildren(input, origin, idx);
     }
+}
 
-    subscribe(tag,callback=(res)=>{}) {
-        return this.state.subscribeTrigger(tag,callback);
-    }
+subscribe(tag,callback=(res)=>{}) {
+    return this.state.subscribeTrigger(tag,callback);
+}
 
-    unsubscribe(tag,sub) {
-        this.state.unsubscribeTrigger(tag,sub);
-    }
+unsubscribe(tag,sub) {
+    this.state.unsubscribeTrigger(tag,sub);
+}
 
 }
 
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
 //node functionality is self-contained, use a graph for organization
 export class GraphNode {
-    parent;
-    children;
-    graph;
+tag;
+parent;
+children;
+graph;
+state = state; //shared trigger state
+nodes = new Map();
 
-    constructor(properties={}, parent, graph) {
-        if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
-        else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
-        Object.assign(this,properties); //set the node's props as this
-        this.parent=parent;
-        this.graph=graph;
+constructor(properties={}, parent, graph) {
+    if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
+    else if(!properties.tag) properties.tag = `node${Math.floor(Math.random()*10000000000)}`; //add a random id for the top index if none supplied
+    Object.assign(this,properties); //set the node's props as this
+    this.parent=parent;
+    this.graph=graph;
 
-        if(graph) {
-            graph.nNodes++;
-            graph.nodes.set(properties.tag,this);
+    if(graph) {
+        graph.nNodes++;
+        graph.nodes.set(properties.tag,this);
+    }
+
+    if(this.children) this.convertChildrenToNodes(this);
+}
+
+//I/O scheme for this node
+operator(input,node=this,origin){
+    return input;
+}
+
+//run the operator
+async runOp(input,node=this,origin) {
+    let result = await this.operator(input,node, origin);
+    if(this.tag) this.state.setState({[this.tag]:result});
+    return result;
+}
+
+//runs the node sequence
+//Should create a sync version with no promises (will block but be faster)
+run(node=this,input,origin) {
+    if(typeof node === 'string') 
+        {
+            let fnd;
+            if(this.graph) fnd = this.graph.nodes.get(node);
+            if(!fnd) fnd = this.nodes.get(node);
+            node = fnd;
+            if(!node) return undefined;
         }
 
-        if(this.children) this.convertChildrenToNodes(this);
-    }
-
-    //I/O scheme for this node
-    operator(input,node=this,origin){
-        return input;
-    }
-
-    //run the operator
-    async runOp(input,node=this,origin) {
-        let result = await this.operator(input,node, origin);
-        if(this.tag && this.graph) this.graph.state.setState({[this.tag]:result});
-        return result;
-    }
-
-    //runs the node sequence
-    //Should create a sync version with no promises (will block but be faster)
-    runNode(node=this,input,origin) {
-        if(typeof node === 'string') 
-            {
-                if(!this.graph) return undefined;
-                node = this.graph.nodes.get(node);
-            }
-
-        return new Promise(async (resolve) => {
-            if(node) {
-                let run = (node, inp, tick=0) => {
-                    return new Promise (async (r) => {
-                        tick++;
-                        let res = await node.runOp(inp,node,origin);
-                        if(typeof node.repeat === 'number') {
-                            while(tick < node.repeat) {
-                                if(node.delay) {
-                                    setTimeout(async ()=>{
-                                        r(await run(node,inp,tick));
-                                    },node.delay);
-                                    break;
-                                } else if (node.frame && requestAnimationFrame) {
-                                    requestAnimationFrame(async ()=>{
-                                        r(await run(node,inp,tick));
-                                    });
-                                    break;
-                                }
-                                else res = await node.runOp(inp,node,origin);
-                                tick++;
+    return new Promise(async (resolve) => {
+        if(node) {
+            let run = (node, inp, tick=0) => {
+                return new Promise (async (r) => {
+                    tick++;
+                    let res = await node.runOp(inp,node,origin);
+                    if(typeof node.repeat === 'number') {
+                        while(tick < node.repeat) {
+                            if(node.delay) {
+                                setTimeout(async ()=>{
+                                    r(await run(node,inp,tick));
+                                },node.delay);
+                                break;
+                            } else if (node.frame && requestAnimationFrame) {
+                                requestAnimationFrame(async ()=>{
+                                    r(await run(node,inp,tick));
+                                });
+                                break;
                             }
-                            if(tick === node.repeat) {
-                                r(res);
-                                return;
-                            }
-                        } else if(typeof node.recursive === 'number') {
-                            
-                            while(tick < node.recursive) {
-                                if(node.delay) {
-                                    setTimeout(async ()=>{
-                                        r(await run(node,res,tick));
-                                    },node.delay);
-                                    break;
-                                } else if (node.frame && requestAnimationFrame) {
-                                    requestAnimationFrame(async ()=>{
-                                        r(await run(node,res,tick));
-                                    });
-                                    break;
-                                }
-                                else res = await node.runOp(res,node,origin);
-                                tick++;
-                            }
-                            if(tick === node.recursive) {
-                                r(res);
-                                return;
-                            }
-                        } else {
+                            else res = await node.runOp(inp,node,origin);
+                            tick++;
+                        }
+                        if(tick === node.repeat) {
                             r(res);
                             return;
                         }
-                    });
+                    } else if(typeof node.recursive === 'number') {
+                        
+                        while(tick < node.recursive) {
+                            if(node.delay) {
+                                setTimeout(async ()=>{
+                                    r(await run(node,res,tick));
+                                },node.delay);
+                                break;
+                            } else if (node.frame && requestAnimationFrame) {
+                                requestAnimationFrame(async ()=>{
+                                    r(await run(node,res,tick));
+                                });
+                                break;
+                            }
+                            else res = await node.runOp(res,node,origin);
+                            tick++;
+                        }
+                        if(tick === node.recursive) {
+                            r(res);
+                            return;
+                        }
+                    } else {
+                        r(res);
+                        return;
+                    }
+                });
+            }
+
+
+            let runnode = async () => {
+
+                let res = await run(node,input); //repeat/recurse before moving on to the parent/child
+
+                if(node.backward && node.parent) {
+                    await this.runNode(node.parent,res,node);
+                }
+                if(node.children && node.forward) {
+                    if(Array.isArray(node.children)) {
+                        for(let i = 0; i < node.children.length; i++) {
+                            await this.runNode(node.children[i],res,node);
+                        }
+                    }
+                    else await this.runNode(node.children,res,node);
                 }
 
-
-                let runnode = async () => {
-
-                    let res = await run(node,input); //repeat/recurse before moving on to the parent/child
-
-                    if(node.backward && node.parent) {
-                        await this.runNode(node.parent,res,node)
-                    }
-                    if(node.children && node.forward) {
-                        if(Array.isArray(node.children)) {
-                            for(let i = 0; i < node.children.length; i++) {
-                                await this.runNode(node.children[i],res,node);
-                            }
-                        }
-                        else await this.runNode(node.children,res,node);
-                    }
-
-                    //can add an animationFrame coroutine, one per node //because why not
-                    if(node.animate && !node.isAnimating) {
-                        node.isAnimating = true;
-                        let anim = async () => {
-                            if(node.isAnimating) {
-                                await node.runOp( 
-                                    input,
-                                    node,
-                                    origin
-                                );
-                                requestAnimationFrame(async ()=>{await anim();});
-                            }
-                        }
-                        requestAnimationFrame(anim);
-                    }
-
-                    //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
-                    if(typeof node.loop === 'number' && !node.isLooping) {
-                        node.isLooping = true;
-                        let loop = async () => {
-                            if(node.looping)  {
-                                await node.runOp( 
-                                    input,
-                                    node,
-                                    origin
-                                );
-                                setTimeout(async ()=>{await loop();},node.loop);
-                            }
+                //can add an animationFrame coroutine, one per node //because why not
+                if(node.animate && !node.isAnimating) {
+                    node.isAnimating = true;
+                    let anim = async () => {
+                        if(node.isAnimating) {
+                            await node.runOp( 
+                                input,
+                                node,
+                                origin
+                            );
+                            requestAnimationFrame(async ()=>{await anim();});
                         }
                     }
-                    
-                    return res;
+                    requestAnimationFrame(anim);
                 }
 
-                if(node.delay) {
-                    setTimeout(async ()=>{
-                        resolve(await runnode());
-                    },node.delay);
-                } else if (node.frame && requestAnimationFrame) {
-                    requestAnimationFrame(async ()=>{
-                        resolve(await runnode());
-                    });
-                } else {
-                    resolve(await runnode());
+                //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+                if(typeof node.loop === 'number' && !node.isLooping) {
+                    node.isLooping = true;
+                    let loop = async () => {
+                        if(node.looping)  {
+                            await node.runOp( 
+                                input,
+                                node,
+                                origin
+                            );
+                            setTimeout(async ()=>{await loop();},node.loop);
+                        }
+                    }
                 }
                 
+                return res;
             }
-            else resolve(undefined);
-        });
-    }
 
-    //this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
-    setOperator(operator=function operator(input,node=this,origin){return input;}) {
-        this.operator = operator;
-    }
+            if(node.delay) {
+                setTimeout(async ()=>{
+                    resolve(await runnode());
+                },node.delay);
+            } else if (node.frame && requestAnimationFrame) {
+                requestAnimationFrame(async ()=>{
+                    resolve(await runnode());
+                });
+            } else {
+                resolve(await runnode());
+            }
+            
+        }
+        else resolve(undefined);
+    });
+}
 
-    setParent(parent) { 
-        this.parent = parent;
-    }
+//this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
+setOperator(operator=function operator(input,node=this,origin){return input;}) {
+    this.operator = operator;
+}
 
-    setChildren(children) {
-        this.children = children;
-    }
+setParent(parent) { 
+    this.parent = parent;
+}
 
-    //stop any loops
-    stopLooping() {
-        node.isLooping = false;
-    }
+setChildren(children) {
+    this.children = children;
+}
 
-    stopAnimating() {
-        node.isAnimating = false;
-    }
 
-    //append child
-    addChildren(children) {
-        if(!this.children) this.children = [];
-        if(!Array.isArray(this.children) && this.children) this.children = [this.children];
-        else if(Array.isArray(children)) this.children.push(...children);
-        else this.children.push(children);
+removeTree(node) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node) {
+        function recursivelyRemove(node) {
+            if(node.children) {
+                if(Array.isArray(node.children)) {
+                    node.children.forEach((c)=>{
+                        this.nodes.delete(c.tag);
+                        recursivelyRemove(c);
+                    })
+                }
+                else if(typeof node.children === 'object') {
+                    this.nodes.delete(node.tag);
+                    recursivelyRemove(node);
+                }
+            }
+        }
+        this.nodes.delete(node.tag);
+        recursivelyRemove(node);
     }
+}
 
-    convertChildrenToNodes(n=this) {
-        if (Array.isArray(n.children)) {
-            for(let i = 0; i < n.children.length; i++) {
-                if(n.children[i].constructor.name === this.constructor.name) continue;
-                n.children[i] = new GraphNode(nn,n,this.graph);
+//converts all children nodes and tag references to graphnodes also
+addNode(node={}) {
+    let converted = new GraphNode(node,this,this.graph); 
+    this.nodes.set(converted);
+    return converted;
+}
+
+removeNode(node) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node) this.nodes.delete(node.tag);
+}
+
+appendNode(node, parentNode=this) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node) parentNode.addChildren(node);
+}
+
+getNode(tag) {
+    return this.nodes.get(tag);
+}
+
+//Should create a sync version with no promises (will block but be faster)
+runNode(node,input,origin) {
+    if(typeof node === 'string') node = this.nodes.get(node);
+    if(node)
+        return node.run(node,input,origin)
+    else return undefined;
+}
+
+//stop any loops
+stopLooping() {
+    node.isLooping = false;
+}
+
+stopAnimating() {
+    node.isAnimating = false;
+}
+
+//append child
+addChildren(children) {
+    if(!this.children) this.children = [];
+    if(!Array.isArray(this.children) && this.children) this.children = [this.children];
+    else if(Array.isArray(children)) this.children.push(...children);
+    else this.children.push(children);
+}
+
+convertChildrenToNodes(n=this) {
+    if(n.children?.name === 'GraphNode') { 
+        if(!this.graph?.nodes.get(n.tag)) this.graph.nodes.set(n.tag);
+        if(!this.nodes.get(n.tag)) this.nodes.set(n.tag); 
+    }
+    else if (Array.isArray(n.children)) {
+        for(let i = 0; i < n.children.length; i++) {
+            if(n.children[i].name === 'GraphNode') { 
+                if(!this.graph?.nodes.get(n.children[i].tag)) this.graph.nodes.set(n.children[i].tag);
+                if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i].tag);
+                continue; 
+            }
+            else if(typeof n.children[i] === 'object') {
+                n.children[i] = new GraphNode(n.children[i],n,this.graph);
+                this.nodes.set(n.children[i].tag);
                 this.convertChildrenToNodes(n.children[i]);
+            } 
+            else if (typeof n.children[i] === 'string') {
+                if(this.graph) {
+                    n.children[i] = this.graph.getNode(n.children[i]); //try graph scope
+                    if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i]);
+                }
+                if(!n.children[i]) n.children[i] = this.nodes.get(n.children[i]); //try local scope
             }
+            
         }
-        else if(typeof n.children === 'object') {
-            if(n.children.constructor.name === this.constructor.name) return;
-            n.children = new GraphNode(n.children,n,this.graph);
-            this.convertChildrenToNodes(n.children);
-        } 
-        else if (typeof n.children === 'string') {
-            n.children = this.graph.getNode(n.children);
-        }
-        return n.children;
     }
+    else if(typeof n.children === 'object') {
+        n.children = new GraphNode(n.children,n,this.graph);
+        this.nodes.set(n.children.tag);
+        this.convertChildrenToNodes(n.children);
+    } 
+    else if (typeof n.children === 'string') {
+        if(this.graph) {
+            n.children = this.graph.getNode(n.children); //try graph scope
+            if(!this.nodes.get(n.children.tag)) this.nodes.set(n.children);
+        }
+        if(!n.children) n.children = this.nodes.get(n.children); //try local scope
+    }
+    return n.children;
+}
 
-    //Call parent node operator directly
-    async callParent(input, origin=this){
-        if(typeof this.parent?.operator === 'function') return await this.parent.runOp(input,this.parent,origin);
-    }
-    
-    async callChildren(input, origin=this, idx){
-        let result;
-        if(Array.isArray(this.children)) {
-            if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],origin);
-            else {
-                result = [];
-                for(let i = 0; i < this.children.length; i++) {
-                    result.push(await this.children[idx]?.runOp(input,this.children[idx],origin));
-                } 
-            }
-        } else if(this.children) {
-            result = await this.children.runOp(input,this.children,origin);
-        }
-        return result;
-    }
+//Call parent node operator directly
+async callParent(input, origin=this){
+    if(typeof this.parent?.operator === 'function') return await this.parent.runOp(input,this.parent,origin);
+}
 
-    setProps(props={}) {
-        Object.assign(this,props);
+async callChildren(input, origin=this, idx){
+    let result;
+    if(Array.isArray(this.children)) {
+        if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],origin);
+        else {
+            result = [];
+            for(let i = 0; i < this.children.length; i++) {
+                result.push(await this.children[idx]?.runOp(input,this.children[idx],origin));
+            } 
+        }
+    } else if(this.children) {
+        result = await this.children.runOp(input,this.children,origin);
     }
+    return result;
+}
+
+setProps(props={}) {
+    Object.assign(this,props);
+}
+
+subscribe(tag=this.tag,callback=(res)=>{}) {
+    return this.state.subscribeTrigger(tag,callback);
+}
+
+unsubscribe(tag=this.tag,sub) {
+    this.state.unsubscribeTrigger(tag,sub);
+}
 
 }
+
 
 // exports.AcyclicGraph = AcyclicGraph;
 // exports.GraphNode = GraphNode;

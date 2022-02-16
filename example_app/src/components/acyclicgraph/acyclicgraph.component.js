@@ -33,7 +33,7 @@ export class Graph extends DOMElement {
 
             this.querySelector('button').onclick = () => {
                 topchildren.forEach((c)=>{
-                    c.props.node.runNode(c.props.node,'Test')
+                    c.props.node.run(c.props.node,'Test')
                 });
             }
         }, 
