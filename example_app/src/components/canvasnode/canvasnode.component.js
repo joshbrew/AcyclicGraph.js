@@ -82,6 +82,15 @@ export class CanvasNodeDiv extends NodeDiv {
     //DOMElement custom callbacks:
     oncreate=(props)=>{
         this.canvas = this.querySelector('canvas');
+        if(props.width) {
+            this.canvas.width = props.width;
+            this.canvas.style.height = props.height;
+        }
+        if(props.height) {
+            this.canvas.height = props.height;
+            this.canvas.style.height = props.height;
+        }
+
         props.canvas = this.canvas;
         if(props.context) props.context = this.canvas.getContext(props.context);
         else props.context = this.canvas.getContext('2d');
@@ -91,7 +100,9 @@ export class CanvasNodeDiv extends NodeDiv {
 
         setTimeout(()=>{if(props.animate) props.node.runAnimation();},10)
 
-    } //after rendering
+    }
+
+    //after rendering
     onresize=(props)=>{
         if(props.canvas) {
             props.canvas.height = this.clientHeight;
