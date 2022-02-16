@@ -8,19 +8,35 @@ let component = require('./canvasnode.component.html');
 //See: https://github.com/brainsatplay/domelement
 export class CanvasNodeDiv extends NodeDiv {
     props={
-        operator:(input,node,origin)=>{ 
+        operator:(
+            input,
+            node,
+            origin,
+            cmd
+        )=>{ 
             let canvas = this.props.canvas;
             let ctx = this.props.ctx;
 
             if(typeof input === 'object') {
-                
+                if(input.radius) this.props.radius = input.radius;
+            }
+
+            if(cmd === 'animate') {
+                this.drawCircle(
+                    canvas.height*0.5,
+                    canvas.width*0.5,
+                    this.props.radius,
+                    'green',
+                    5,
+                    '#003300'
+                );
             }
         },
         forward:true, //pass output to child nodes
         backward:false, //pass output to parent node
         children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
         delay:false, //ms delay to fire the node
-        repeat:false, // set repeat as an integer to repeate the input n times
+        repeat:false, // set repeat as an integer to repeat the input n times
         recursive:false, //or set recursive with an integer to pass the output back in as the next input n times
         animate:true, //true or false
         loop:undefined, //milliseconds or false
@@ -32,13 +48,43 @@ export class CanvasNodeDiv extends NodeDiv {
 
     //set the template string or function (which can input props to return a modified string)
     template=component;
+
+        
+    drawCircle(centerX, centerY, radius, fill='green', strokewidth=5, strokestyle='#003300') {
+        this.props.ctx.beginPath();
+        this.props.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+        this.props.ctx.fillStyle = fill;
+        this.props.ctx.fill();
+        this.props.ctx.lineWidth = strokewidth;
+        this.props.ctx.strokeStyle = strokestyle;
+        this.props.ctx.stroke();
+    }
+
+    drawLine(
+        from={x:0,y:0},
+        to={x:1,y:1},
+        strokewidth=5,
+        strokestyle='#003300'
+    ) {
+        this.props.ctx.beginPath();
+        this.props.ctx.lineWidth = strokewidth;
+        this.props.ctx.strokeStyle = strokestyle;
+        this.props.ctx.moveTo(from.x, from.y);
+        this.props.ctx.lineTo(to.x, to.y);
+        this.props.ctx.stroke();
+    }
     
     //DOMElement custom callbacks:
     oncreate=(props)=>{
         props.canvas = this.querySelector('canvas');
         props.ctx = canvas.getContext('2d');
+
+        if(props.animate) props.node.runAnimation();
     } //after rendering
-    //onresize=(props)=>{} //on window resize
+    onresize=(props)=>{
+        props.canvas?.height = this.clientHeight;
+        props.canvas?.width = this.clientWidth;
+    } //on window resize
     //onchanged=(props)=>{} //on props changed
     //ondelete=(props)=>{} //on element deleted. Can remove with this.delete() which runs cleanup functions
 }

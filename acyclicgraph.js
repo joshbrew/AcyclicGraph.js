@@ -201,15 +201,15 @@ export class AcyclicGraph {
         parentNode.addChildren(node);
     }
 
-    async callParent(node, input, origin=node) {
+    async callParent(node, input, origin=node, cmd) {
         if(node?.parent) {
-            return await node.callParent(input, node.children, origin);
+            return await node.callParent(input, node.parent, origin, cmd);
         }
     }
 
-    async callChildren(node, input, origin=node, idx) {
+    async callChildren(node, input, origin=node, cmd, idx) {
         if(node?.children) {
-            return await node.callChildren(input, origin, idx);
+            return await node.callChildren(input, origin, cmd, idx);
         }
     }
 
@@ -249,13 +249,13 @@ constructor(properties={}, parentNode, graph) {
 }
 
 //I/O scheme for this node
-operator(input,node=this,origin){
+operator(input,node=this,origin,cmd){
     return input;
 }
 
 //run the operator
-async runOp(input,node=this,origin) {
-    let result = await this.operator(input,node, origin);
+async runOp(input,node=this,origin,cmd) {
+    let result = await this.operator(input,node,origin,cmd);
     if(this.tag) this.state.setState({[this.tag]:result});
     return result;
 }
@@ -345,33 +345,12 @@ run(node=this,input,origin) {
 
                 //can add an animationFrame coroutine, one per node //because why not
                 if(node.animate && !node.isAnimating) {
-                    node.isAnimating = true;
-                    let anim = async () => {
-                        if(node.isAnimating) {
-                            await node.runOp( 
-                                input,
-                                node,
-                                origin
-                            );
-                            requestAnimationFrame(async ()=>{await anim();});
-                        }
-                    }
-                    requestAnimationFrame(anim);
+                    this.runAnimation(input,node,origin);
                 }
 
                 //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
                 if(typeof node.loop === 'number' && !node.isLooping) {
-                    node.isLooping = true;
-                    let loop = async () => {
-                        if(node.looping)  {
-                            await node.runOp( 
-                                input,
-                                node,
-                                origin
-                            );
-                            setTimeout(async ()=>{await loop();},node.loop);
-                        }
-                    }
+                    this.runLoop(input,node,origin);
                 }
                 
                 return res;
@@ -394,8 +373,45 @@ run(node=this,input,origin) {
     });
 }
 
+runAnimation(input,node=this,origin) {
+    //can add an animationFrame coroutine, one per node //because why not
+    if(node.animate && !node.isAnimating) {
+        node.isAnimating = true;
+        let anim = async () => {
+            if(node.isAnimating) {
+                await node.runOp( 
+                    input,
+                    node,
+                    origin,
+                    'animate'
+                );
+                requestAnimationFrame(async ()=>{await anim();});
+            }
+        }
+        requestAnimationFrame(anim);
+    }
+}
+
+runLoop(input,node=this,origin) {
+    //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+    if(typeof node.loop === 'number' && !node.isLooping) {
+        node.isLooping = true;
+        let loop = async () => {
+            if(node.looping)  {
+                await node.runOp( 
+                    input,
+                    node,
+                    origin,
+                    'loop'
+                );
+                setTimeout(async ()=>{await loop();},node.loop);
+            }
+        }
+    }
+}
+
 //this is the i/o handler, or the 'main' function for this node to propagate results. The origin is the node the data was propagated from
-setOperator(operator=function operator(input,node=this,origin){return input;}) {
+setOperator(operator=function operator(input,node=this,origin,cmd){return input;}) {
     this.operator = operator;
 }
 
@@ -553,22 +569,22 @@ convertChildrenToNodes(n=this) {
 }
 
 //Call parent node operator directly
-async callParent(input, origin=this){
-    if(typeof this.parent?.operator === 'function') return await this.parent.runOp(input,this.parent,origin);
+async callParent(input, origin=this, cmd){
+    if(typeof this.parent?.operator === 'function') return await this.parent.runOp(input,this.parent,origin, cmd);
 }
 
-async callChildren(input, origin=this, idx){
+async callChildren(input, origin=this, cmd, idx){
     let result;
     if(Array.isArray(this.children)) {
-        if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],origin);
+        if(idx) result = await this.children[idx]?.runOp(input,this.children[idx],origin,cmd);
         else {
             result = [];
             for(let i = 0; i < this.children.length; i++) {
-                result.push(await this.children[idx]?.runOp(input,this.children[idx],origin));
+                result.push(await this.children[idx]?.runOp(input,this.children[idx],origin,cmd));
             } 
         }
     } else if(this.children) {
-        result = await this.children.runOp(input,this.children,origin);
+        result = await this.children.runOp(input,this.children,origin,cmd);
     }
     return result;
 }
