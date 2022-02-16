@@ -1,9 +1,9 @@
 
 import {addCustomElement} from 'fragelement';
 
-import {NodeDiv} from '../acyclicgraph/graphnode.component'
+import {NodeDiv} from '../acyclicgraph/graph.node'
 
-let component = require('./canvasnode.component.html');
+let component = require('./circlecanvas.node.html');
 
 //See: https://github.com/brainsatplay/domelement
 export class CanvasNodeDiv extends NodeDiv {

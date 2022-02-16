@@ -1,7 +1,7 @@
 
 import {addCustomElement} from 'fragelement';
 
-import {NodeDiv} from '../acyclicgraph/graphnode.component'
+import {NodeDiv} from '../acyclicgraph/graph.node'
 
 let component = require('./input.node.html');
 
