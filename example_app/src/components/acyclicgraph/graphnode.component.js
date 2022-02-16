@@ -19,8 +19,9 @@ export class NodeDiv extends DOMElement {
         recursive:false,
         graph:undefined, //parent AcyclicGraph instance
         node:undefined, //GraphNode instance
+        input_delay:10 //timeout delay for graph nodes to run operation inputs on load, they will not recognize their children otherwise as the DOM loads
     }; //can specify properties of the element which can be subscribed to for changes.
-    
+
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
@@ -30,20 +31,22 @@ export class NodeDiv extends DOMElement {
             this.setupNode(this.props);
 
             if(this.props.input) { //e.g. run the node on input
-                setTimeout(()=>{
+                setTimeout(async()=>{
                     this.props.node.runNode(this.props.node,this.props.input,this.props.graph)
-                },10);
+                },
+                this.props.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
+                );
             }
         },2);
     }
 
     setupNode(props) {
         let parent = this.parentNode;
-        if(parent.tagName.toLowerCase() === 'graph-node') {
+        if(parent.props?.operator) { //has operator, this is a graph-node (in case you extend it with a new tagName)
             props.parentNode = parent;
         }
         if(!props.graph) {   
-            while(parent.tagName.toLowerCase() !== 'acyclic-graph') {
+            while(!parent.props.nodes) { //has nodes prop, is an acyclic-graph
                 // console.log(parent)
                 // console.log(parent.tagName)
                 if(parent.constructor.name === 'HTMLBodyElement' || parent.constructor.name === 'HTMLHeadElement' || parent.constructor.name === 'HTMLHtmlElement' || parent.constructor.name === 'HTMLDocument') {
@@ -52,14 +55,17 @@ export class NodeDiv extends DOMElement {
                 }
                 parent = parent.parentNode;
             }
-            if(parent.tagName.toLowerCase() === 'acyclic-graph') {
+            if(parent.props?.nodes) {
                 props.graph = parent.props.graph;
+                props.input_delay = parent.props.input_delay;
             }
         }
         if(this.id && !props.tag) props.tag = this.id;
 
         if(props.graph && !props.node) props.node = props.graph.nodes.get(props.tag); //can get by id
         if(!props.node) props.node = new GraphNode(props, parent.node, props.graph);
+
+        
         
         props.tag = props.node.tag;
         if(!this.id) this.id = props.tag;

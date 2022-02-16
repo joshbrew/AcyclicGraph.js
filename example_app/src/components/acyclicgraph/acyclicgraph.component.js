@@ -9,7 +9,8 @@ let component = require('./acyclicgraph.component.html');
 export class Graph extends DOMElement {
     props={
         graph:new AcyclicGraph(),
-        nodes:[]
+        nodes:[],
+        input_delay:10 //timeout delay for graph nodes to run operation inputs on load, they will not recognize their children otherwise as the DOM loads
     } //can specify properties of the element which can be subscribed to for changes.
     
     //set the template string or function (which can input props to return a modified string)
@@ -20,6 +21,7 @@ export class Graph extends DOMElement {
 
         setTimeout(()=> { //timeout ensures everything is on the DOM before pairing/creating graphnode objects as each is constructed sequentially and run before the next one exists
             
+            //get the child nodes from nested graph-node divs
             let children = Array.from(this.children);
             let topchildren = [];
             if(children?.length > 0) {
@@ -35,7 +37,8 @@ export class Graph extends DOMElement {
                 });
             }
         }, 
-        1);
+        this.props.input_delay
+        );
     }
 
     //DOMElement custom callbacks:
