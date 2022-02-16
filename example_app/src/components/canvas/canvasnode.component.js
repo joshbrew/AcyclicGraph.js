@@ -20,12 +20,12 @@ export class CanvasNodeDiv extends NodeDiv {
             
             if(!this.props.triggered) {
                 this.props.radius += Math.random()-0.5;
-                if(this.props.radius <= 1) this.props.radius = 1
             }
 
             if(cmd === 'animate') {
                 let canvas = this.props.canvas;
                 let ctx = this.props.ctx;
+                if(this.props.radius <= 1) this.props.radius = 1;
                 ctx.clearRect(0,0,canvas.width,canvas.height);
                 this.drawCircle(
                     canvas.width*0.5,
@@ -47,7 +47,6 @@ export class CanvasNodeDiv extends NodeDiv {
                     this.props.triggered = true;
                 } else {
                     this.props.radius += Math.random()-0.5;
-                    if(this.props.radius <= 1) this.props.radius = 1;
                     this.props.triggered = true;
                 }
             }
