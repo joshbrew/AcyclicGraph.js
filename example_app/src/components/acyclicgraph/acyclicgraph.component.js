@@ -9,10 +9,11 @@ let component = require('./acyclicgraph.component.html');
 export class Graph extends DOMElement {
     props={
         graph:new AcyclicGraph(),
-        nodes:[],
-        input_delay:5 //onload delay to give the children nodes enough time to get ready with their slight delays to work around the DOM a bit
+        nodes:[]
     } //can specify properties of the element which can be subscribed to for changes.
     
+    input_delay=1 //onload delay to give the children nodes enough time to get ready with their slight delays to work around the DOM a bit
+
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
@@ -34,7 +35,7 @@ export class Graph extends DOMElement {
                 this.children_ready(children,top_children);
                 
             }, 
-            this.props.input_delay
+            this.input_delay
         );
     }
 
