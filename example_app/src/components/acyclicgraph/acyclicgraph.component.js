@@ -10,7 +10,7 @@ export class Graph extends DOMElement {
     props={
         graph:new AcyclicGraph(),
         nodes:[],
-        input_delay:10 //timeout delay for graph nodes to run operation inputs on load, they will not recognize their children otherwise as the DOM loads
+        input_delay:5 //onload delay to give the children nodes enough time to get ready with their slight delays to work around the DOM a bit
     } //can specify properties of the element which can be subscribed to for changes.
     
     //set the template string or function (which can input props to return a modified string)

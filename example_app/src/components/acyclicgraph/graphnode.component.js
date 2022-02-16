@@ -17,9 +17,11 @@ export class NodeDiv extends DOMElement {
         delay:false,
         repeat:false, // set repeat 
         recursive:false,
+        animate:false, //true or false
+        loop:undefined, //milliseconds or false
         graph:undefined, //parent AcyclicGraph instance
         node:undefined, //GraphNode instance
-        input_delay:10 //timeout delay for graph nodes to run operation inputs on load, they will not recognize their children otherwise as the DOM loads
+        input_delay:1 //onload runNode delay for graph nodes to run operations on inputs, they will not recognize their children otherwise as the DOM loads
     }; //can specify properties of the element which can be subscribed to for changes.
 
     //set the template string or function (which can input props to return a modified string)
@@ -27,16 +29,19 @@ export class NodeDiv extends DOMElement {
 
     constructor() {
         super();
-        setTimeout(()=>{ //timeout ensures everything is on the DOM before pairing/creating graphnode objects
-            this.setupNode(this.props);
-            if(this.props.input) { //e.g. run the node on input
-                setTimeout(async()=>{
-                    this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
-                },
-                this.props.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
-                );
-            }
-        },2);
+        setTimeout( //need this to ensure props are set and the initial template fragment has been rendered i.e. so elements can be selected in the operator without possibility for error
+            ()=>{ //timeout ensures everything is on the DOM before pairing/creating graphnode objects
+                this.setupNode(this.props);
+                if(this.props.input) { //e.g. run the node on input
+                    setTimeout(async()=>{
+                        this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
+                    },
+                    this.props.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
+                    );
+                }
+            },
+            0.01
+        );
     }
 
     setupNode(props) {
@@ -68,9 +73,7 @@ export class NodeDiv extends DOMElement {
         if(!this.id) this.id = props.tag;
 
         if(props.parentNode) {
-            setTimeout(()=>{
-                props.parentNode.props.node?.addChildren(props.node);
-            },1);
+            props.parentNode.props.node?.addChildren(props.node);
         }
     }
 
