@@ -54,20 +54,20 @@ export class NodeDiv extends DOMElement {
         }
         if(this.id && !props.tag) props.tag = this.id;
 
-        props.node = new GraphNode(props, parent.node, props.graph);
+        if(props.graph && !props.node) props.node = props.graph.nodes.get(props.tag); //can get by id
+        if(!props.node) props.node = new GraphNode(props, parent.node, props.graph);
+
+        if(!this.id) this.id = props.tag;
 
         if(props.parent) {
             setTimeout(()=>{
-                console.log(props.node,props.parent.node)
                 props.parent.props.node?.addChildren(props.node);
-                console.log(props.parent.props.node.children)
             },2);
         }
 
         props.tag = props.node.tag;
        
 
-        if(!this.id) this.id = props.tag;
 
     }
     //onresize=(props)=>{} //on window resize
