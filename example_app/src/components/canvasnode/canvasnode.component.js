@@ -92,9 +92,10 @@ export class CanvasNodeDiv extends NodeDiv {
         }
         if(props.style) {
             this.canvas.style = props.style;
-            this.canvas.height = this.canvas.clientHeight;
-            this.canvas.width = this.canvas.clientWidth;
-
+            setTimeout(()=>{
+                this.canvas.height = this.canvas.clientHeight;
+                this.canvas.width = this.canvas.clientWidth;
+            },10); //slight recalculation delay time
         }
 
         props.canvas = this.canvas;
@@ -113,6 +114,8 @@ export class CanvasNodeDiv extends NodeDiv {
         if(this.canvas) {
             this.canvas.width = this.canvas.clientWidth;
             this.canvas.height = this.canvas.clientHeight;
+            this.canvas.style.width = this.canvas.clientWidth;
+            this.canvas.style.height = this.canvas.clientHeight;
         }
     } //on window resize
     //onchanged=(props)=>{} //on props changed
