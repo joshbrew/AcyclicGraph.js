@@ -24,19 +24,23 @@ export class NodeDiv extends DOMElement {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-    //DOMElement custom callbacks:
-    oncreate=(props)=>{
-        this.setupNode(props)
+    constructor() {
+        super();
+        setTimeout(()=>{ //timeout ensures everything is on the DOM before pairing/creating graphnode objects
+            this.setupNode(this.props);
 
-        if(props.input) { //e.g. run the node on input
-            props.node.runNode(props.node,props.input,undefined);
-        }
+            if(this.props.input) { //e.g. run the node on input
+                setTimeout(()=>{
+                    this.props.node.runNode(this.props.node,this.props.input,this.props.graph)
+                },2);
+            }
+        },2);
     }
 
     setupNode(props) {
         let parent = this.parentNode;
         if(parent.tagName.toLowerCase() === 'graph-node') {
-            props.parent = parent;
+            props.parentNode = parent;
         }
         if(!props.graph) {   
             while(parent.tagName.toLowerCase() !== 'acyclic-graph') {
@@ -56,20 +60,20 @@ export class NodeDiv extends DOMElement {
 
         if(props.graph && !props.node) props.node = props.graph.nodes.get(props.tag); //can get by id
         if(!props.node) props.node = new GraphNode(props, parent.node, props.graph);
-
+        
         props.tag = props.node.tag;
         if(!this.id) this.id = props.tag;
 
-        if(props.parent) {
+        if(props.parentNode) {
             setTimeout(()=>{
-                props.parent.props.node?.addChildren(props.node);
-            },2);
+                props.parentNode.props.node?.addChildren(props.node);
+            },1);
         }
-
-       
-
-
     }
+
+    
+    //DOMElement custom callbacks:
+    //oncreate=(props)=>{} //after rendering
     //onresize=(props)=>{} //on window resize
     //onchanged=(props)=>{} //on props changed
     //ondelete=(props)=>{} //on element deleted. Can remove with this.delete() which runs cleanup functions
