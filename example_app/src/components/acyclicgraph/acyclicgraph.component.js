@@ -19,26 +19,32 @@ export class Graph extends DOMElement {
     constructor() {
         super();
 
-        setTimeout(()=> { //timeout ensures everything is on the DOM before pairing/creating graphnode objects as each is constructed sequentially and run before the next one exists
-            
-            //get the child nodes from nested graph-node divs
-            let children = Array.from(this.children);
-            let topchildren = [];
-            if(children?.length > 0) {
-                children.forEach((n)=>{
-                    if(n.props) this.props.nodes.push(n.props.node);
-                    if(n.props && n.parentNode.tagName === this.tagName) topchildren.push(n)
-                });
-            }
+        setTimeout(
+            ()=> { //timeout ensures everything is on the DOM before pairing/creating graphnode objects as each is constructed sequentially and run before the next one exists
+                //get the child nodes from nested graph-node divs
+                let children = Array.from(this.children);
+                let top_children = [];
+                if(children?.length > 0) {
+                    children.forEach((n)=>{
+                        if(n.props) this.props.nodes.push(n.props.node);
+                        if(n.props && n.parentNode.tagName === this.tagName) top_children.push(n)
+                    });
+                }
 
-            this.querySelector('button').onclick = () => {
-                topchildren.forEach((c)=>{
-                    c.props.node.runNode(c.props.node,'Test')
-                });
-            }
-        }, 
-        this.props.input_delay
+                this.children_ready(children,top_children);
+                
+            }, 
+            this.props.input_delay
         );
+    }
+
+    //like oncreate but once all of the child nodes should be loaded in the DOM, so you don't need to change the constructor
+    children_ready(all_children=[],top_children=[]) {
+        this.querySelector('button').onclick = () => { //test 
+            top_children.forEach((c)=>{
+                c.props.node.runNode(c.props.node,'Test')
+            });
+        }
     }
 
     //DOMElement custom callbacks:

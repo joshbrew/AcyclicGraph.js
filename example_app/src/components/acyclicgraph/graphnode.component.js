@@ -29,10 +29,9 @@ export class NodeDiv extends DOMElement {
         super();
         setTimeout(()=>{ //timeout ensures everything is on the DOM before pairing/creating graphnode objects
             this.setupNode(this.props);
-
             if(this.props.input) { //e.g. run the node on input
                 setTimeout(async()=>{
-                    this.props.node.runNode(this.props.node,this.props.input,this.props.graph)
+                    this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
                 },
                 this.props.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
                 );
@@ -62,11 +61,9 @@ export class NodeDiv extends DOMElement {
         }
         if(this.id && !props.tag) props.tag = this.id;
 
-        if(props.graph && !props.node) props.node = props.graph.nodes.get(props.tag); //can get by id
-        if(!props.node) props.node = new GraphNode(props, parent.node, props.graph);
+        if(props.graph && !props.node && props.tag) props.node = props.graph.nodes.get(props.tag); //can try to get graph nodes by id or tag
+        if(!props.node) props.node = new GraphNode(props, parent.node, props.graph); //you could pass a graphnode 
 
-        
-        
         props.tag = props.node.tag;
         if(!this.id) this.id = props.tag;
 
