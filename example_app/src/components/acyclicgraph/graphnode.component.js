@@ -57,6 +57,7 @@ export class NodeDiv extends DOMElement {
         if(props.graph && !props.node) props.node = props.graph.nodes.get(props.tag); //can get by id
         if(!props.node) props.node = new GraphNode(props, parent.node, props.graph);
 
+        props.tag = props.node.tag;
         if(!this.id) this.id = props.tag;
 
         if(props.parent) {
@@ -65,7 +66,6 @@ export class NodeDiv extends DOMElement {
             },2);
         }
 
-        props.tag = props.node.tag;
        
 
 
