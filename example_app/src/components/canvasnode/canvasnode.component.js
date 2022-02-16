@@ -8,20 +8,25 @@ let component = require('./canvasnode.component.html');
 //See: https://github.com/brainsatplay/domelement
 export class CanvasNodeDiv extends NodeDiv {
     props={
+        radius:20,
+
         operator:(
             input,
             node,
             origin,
             cmd
         )=>{ 
-            let canvas = this.props.canvas;
-            let ctx = this.props.ctx;
 
             if(typeof input === 'object') {
                 if(input.radius) this.props.radius = input.radius;
+            } else {
+                this.props.radius += Math.random()-0.5;
+                if(this.props.radius <= 1) this.props.radius = 1
             }
 
             if(cmd === 'animate') {
+                let canvas = this.props.canvas;
+                let ctx = this.props.ctx;
                 this.drawCircle(
                     canvas.height*0.5,
                     canvas.width*0.5,
@@ -76,14 +81,22 @@ export class CanvasNodeDiv extends NodeDiv {
     
     //DOMElement custom callbacks:
     oncreate=(props)=>{
-        props.canvas = this.querySelector('canvas');
-        props.ctx = canvas.getContext('2d');
+        this.canvas = this.querySelector('canvas');
+        props.canvas = this.canvas;
+        if(props.context) props.context = this.canvas.getContext(props.context);
+        else props.context = this.canvas.getContext('2d');
+        this.context = props.context;
+        this.ctx = this.context;
+        props.ctx = this.context;
 
-        if(props.animate) props.node.runAnimation();
+        setTimeout(()=>{if(props.animate) props.node.runAnimation();},10)
+
     } //after rendering
     onresize=(props)=>{
-        props.canvas?.height = this.clientHeight;
-        props.canvas?.width = this.clientWidth;
+        if(props.canvas) {
+            props.canvas.height = this.clientHeight;
+            props.canvas.width = this.clientWidth;
+        }
     } //on window resize
     //onchanged=(props)=>{} //on props changed
     //ondelete=(props)=>{} //on element deleted. Can remove with this.delete() which runs cleanup functions

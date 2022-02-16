@@ -33,21 +33,35 @@ export class NodeDiv extends DOMElement {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-    constructor() {
-        super();
-        setTimeout( //need this to ensure props are set and the initial template fragment has been rendered i.e. so elements can be selected in the operator without possibility for error
-            ()=>{ //timeout ensures everything is on the DOM before pairing/creating graphnode objects
-                this.setupNode(this.props);
-                if(this.props.input) { //e.g. run the node on input
-                    setTimeout(async()=>{
-                        this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
-                    },
-                    this.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
-                    );
-                }
+    //gotta customize this a little from the default DOMElement
+ 
+    render = (props=this.props) => {
+
+        if(typeof this.template === 'function') this.templateString = this.template(props); //can pass a function
+        else this.templateString = this.template;
+
+        //this.innerHTML = this.templateString;
+
+        const t = document.createElement('template');
+        t.innerHTML = this.templateString;
+        const fragment = t.content;
+        if(this.fragment) { //will reappend the fragment without reappending the whole node if already rendered once
+            this.removeChild(this.fragment); 
+        }
+        this.fragment = fragment;
+        this.appendChild(fragment);
+        
+        
+        //add this here which will run a routine AFTER rendering so the elements can be updated
+        this.setupNode(this.props);
+        if(this.props.input) { //e.g. run the node on input
+            setTimeout(async()=>{
+                this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
             },
-            0.01
-        );
+            this.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
+            );
+        }
+        if(this.oncreate) this.oncreate(props); //set scripted behaviors
     }
 
     setupNode(props) {
@@ -73,7 +87,7 @@ export class NodeDiv extends DOMElement {
         if(this.id && !props.tag) props.tag = this.id;
 
         if(props.graph && !props.node && props.tag) props.node = props.graph.nodes.get(props.tag); //can try to get graph nodes by id or tag
-        else if(typeof props.node === 'string') props.node = props.graph.nodes.get(props.node); //can try to get graph nodes by id or tag
+        else if(props.graph && typeof props.node === 'string') props.node = props.graph.nodes.get(props.node); //can try to get graph nodes by id or tag
         
         if(!props.node) props.node = new GraphNode(props, parent.node, props.graph); //you could pass a graphnode 
 
