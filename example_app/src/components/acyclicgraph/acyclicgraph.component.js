@@ -15,8 +15,6 @@ export class Graph extends DOMElement {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-    graphnode;
-
     constructor() {
         super();
 

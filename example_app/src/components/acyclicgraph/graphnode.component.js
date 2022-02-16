@@ -32,7 +32,7 @@ export class NodeDiv extends DOMElement {
             if(this.props.input) { //e.g. run the node on input
                 setTimeout(()=>{
                     this.props.node.runNode(this.props.node,this.props.input,this.props.graph)
-                },2);
+                },10);
             }
         },2);
     }
