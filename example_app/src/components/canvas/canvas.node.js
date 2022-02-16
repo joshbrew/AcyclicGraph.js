@@ -6,10 +6,9 @@ import {NodeDiv} from '../acyclicgraph/graph.node'
 let component = require('./canvas.node.html');
 
 //See: https://github.com/brainsatplay/domelement
-export class CanvasNodeDiv extends NodeDiv {
+export class CanvasNode extends NodeDiv {
     props={
-        radius:20,
-        triggered:false,
+        
 
         operator:(
             input,
@@ -17,37 +16,21 @@ export class CanvasNodeDiv extends NodeDiv {
             origin,
             cmd
         )=>{ 
-            
-            if(!this.props.triggered) {
-                this.props.radius += Math.random()-0.5;
-            }
+
 
             if(cmd === 'animate') {
-                let canvas = this.props.canvas;
-                let ctx = this.props.ctx;
-                if(this.props.radius <= 1) this.props.radius = 1;
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                this.drawCircle(
-                    canvas.width*0.5,
-                    canvas.height*0.5,
-                    this.props.radius,
-                    'green',
-                    5,
-                    '#003300'
-                );
+                //draw loop
+                this.draw();
             } else {
+                //e.g. input commands
                 if(typeof input === 'object') {
-                    if(input.radius) this.props.radius += input.radius;
-                    this.props.triggered = true;
+                    
                 } else if (typeof input === 'number') {
-                    this.props.radius += input;
-                    this.props.triggered = true;
+                    
                 } else if (typeof input === 'string') {
-                    this.props.radius += parseFloat(input);
-                    this.props.triggered = true;
+                    
                 } else {
-                    this.props.radius += Math.random()-0.5;
-                    this.props.triggered = true;
+                    
                 }
             }
         },
@@ -68,29 +51,9 @@ export class CanvasNodeDiv extends NodeDiv {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-        
-    drawCircle(centerX, centerY, radius, fill='green', strokewidth=5, strokestyle='#003300') {
-        this.props.ctx.beginPath();
-        this.props.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-        this.props.ctx.fillStyle = fill;
-        this.props.ctx.fill();
-        this.props.ctx.lineWidth = strokewidth;
-        this.props.ctx.strokeStyle = strokestyle;
-        this.props.ctx.stroke();
-    }
-
-    drawLine(
-        from={x:0,y:0},
-        to={x:1,y:1},
-        strokewidth=5,
-        strokestyle='#003300'
-    ) {
-        this.props.ctx.beginPath();
-        this.props.ctx.lineWidth = strokewidth;
-        this.props.ctx.strokeStyle = strokestyle;
-        this.props.ctx.moveTo(from.x, from.y);
-        this.props.ctx.lineTo(to.x, to.y);
-        this.props.ctx.stroke();
+    draw() {
+        let canvas = this.props.canvas;
+        let ctx = this.props.ctx;
     }
     
     //DOMElement custom callbacks:
@@ -138,4 +101,4 @@ export class CanvasNodeDiv extends NodeDiv {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(CanvasNodeDiv,'canvas-node');
+addCustomElement(CanvasNode,'canvas-node');

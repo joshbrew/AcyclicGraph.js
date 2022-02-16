@@ -6,7 +6,7 @@ import {NodeDiv} from '../acyclicgraph/graph.node'
 let component = require('./circlecanvas.node.html');
 
 //See: https://github.com/brainsatplay/domelement
-export class CanvasNodeDiv extends NodeDiv {
+export class CircleCanvasNode extends NodeDiv {
     props={
         radius:20,
         triggered:false,
@@ -23,18 +23,7 @@ export class CanvasNodeDiv extends NodeDiv {
             }
 
             if(cmd === 'animate') {
-                let canvas = this.props.canvas;
-                let ctx = this.props.ctx;
-                if(this.props.radius <= 1) this.props.radius = 1;
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                this.drawCircle(
-                    canvas.width*0.5,
-                    canvas.height*0.5,
-                    this.props.radius,
-                    'green',
-                    5,
-                    '#003300'
-                );
+                this.draw();
             } else {
                 if(typeof input === 'object') {
                     if(input.radius) this.props.radius += input.radius;
@@ -68,6 +57,20 @@ export class CanvasNodeDiv extends NodeDiv {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
+    draw() {
+        let canvas = this.props.canvas;
+        let ctx = this.props.ctx;
+        if(this.props.radius <= 1) this.props.radius = 1;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        this.drawCircle(
+            canvas.width*0.5,
+            canvas.height*0.5,
+            this.props.radius,
+            'green',
+            5,
+            '#003300'
+        );
+    }
         
     drawCircle(centerX, centerY, radius, fill='green', strokewidth=5, strokestyle='#003300') {
         this.props.ctx.beginPath();
@@ -138,4 +141,4 @@ export class CanvasNodeDiv extends NodeDiv {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(CanvasNodeDiv,'canvas-node');
+addCustomElement(CircleCanvasNode,'circlecanvas-node');

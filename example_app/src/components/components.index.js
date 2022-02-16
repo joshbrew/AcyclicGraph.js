@@ -5,4 +5,7 @@ import './sequencer/sequencer.component.js'
 import './canvas/canvas.node.js'
 import './input/button.node.js'
 import './input/input.node.js'
-import './component.js'
+import './template/component.js'
+
+
+import './canvas/circlecanvas.node.js'
