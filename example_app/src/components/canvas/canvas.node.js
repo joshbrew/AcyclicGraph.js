@@ -17,7 +17,6 @@ export class CanvasNode extends NodeDiv {
             cmd
         )=>{ 
 
-
             if(cmd === 'animate') {
                 //draw loop
                 this.draw(input,node,origin,cmd);
@@ -43,6 +42,7 @@ export class CanvasNode extends NodeDiv {
         forward:true, //pass output to child nodes
         backward:false, //pass output to parent node
         children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
+        parent:undefined, //parent graph node
         delay:false, //ms delay to fire the node
         repeat:false, // set repeat as an integer to repeat the input n times
         recursive:false, //or set recursive with an integer to pass the output back in as the next input n times

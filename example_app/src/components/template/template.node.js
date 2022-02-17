@@ -8,10 +8,16 @@ let component = require('./template.node.html');
 //See: https://github.com/brainsatplay/domelement
 export class TemplateNodeDiv extends NodeDiv {
     props={
-        operator:(input,node,origin,cmd)=>{ console.log(input); return input; }, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
+        operator:(
+            input, //input, e.g. output from another node
+            node,  //'this' node
+            origin, //origin node
+            cmd    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
+        )=>{ console.log(input); return input; }, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
         forward:true, //pass output to child nodes
         backward:false, //pass output to parent node
         children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
+        parent:undefined, //parent graph node
         delay:false, //ms delay to fire the node
         repeat:false, // set repeat as an integer to repeat the input n times
         recursive:false, //or set recursive with an integer to pass the output back in as the next input n times

@@ -17,6 +17,7 @@ export class NodeDiv extends DOMElement {
         forward:true, //pass output to child nodes
         backward:false, //pass output to parent node
         children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
+        parent:undefined, //parent graph node
         delay:false, //ms delay to fire the node
         repeat:false, // set repeat as an integer to repeat the input n times
         recursive:false, //or set recursive with an integer to pass the output back in as the next input n times
@@ -34,7 +35,6 @@ export class NodeDiv extends DOMElement {
     template=component;
 
     //gotta customize this a little from the default DOMElement
- 
     render = (props=this.props) => {
 
         if(typeof this.template === 'function') this.templateString = this.template(props); //can pass a function
@@ -67,7 +67,7 @@ export class NodeDiv extends DOMElement {
     setupNode(props) {
         let parent = this.parentNode;
         if(parent.props?.operator) { //has operator, this is a graph-node (in case you extend it with a new tagName)
-            props.parentNode = parent;
+            if(parent.props?.node) props.parent = parent.props.node;
         }
         if(!props.graph) {   
             while(!parent.props.nodes) { //has nodes prop, is an acyclic-graph
@@ -89,13 +89,13 @@ export class NodeDiv extends DOMElement {
         if(props.graph && !props.node && props.tag) props.node = props.graph.nodes.get(props.tag); //can try to get graph nodes by id or tag
         else if(props.graph && typeof props.node === 'string') props.node = props.graph.nodes.get(props.node); //can try to get graph nodes by id or tag
         
-        if(!props.node) props.node = new GraphNode(props, parent.node, props.graph); //you could pass a graphnode 
+        if(!props.node) props.node = new GraphNode(props, props.parent, props.graph); //you could pass a graphnode 
 
         props.tag = props.node.tag;
         if(!this.id) this.id = props.tag;
 
-        if(props.parentNode) {
-            props.parentNode.props.node?.addChildren(props.node);
+        if(props.parent) {
+            props.parent.addChildren(props.node);
         }
     }
 
