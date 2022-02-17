@@ -20,7 +20,13 @@ export class CanvasNode extends NodeDiv {
 
             if(cmd === 'animate') {
                 //draw loop
-                this.draw();
+                this.draw(input,node,origin,cmd);
+                for(let i = 0; i < this.drawFuncs.length; i++) { //lets use other nodes to send draw functions to the canvas
+                    let f = this.drawFuncs[i];
+                    if(typeof f === 'function') {
+                        f(input,node,origin,cmd); //pass the args in (need these if you pass arrow functions)
+                    }
+                }
             } else {
                 //e.g. input commands
                 if(typeof input === 'object') {
@@ -51,10 +57,16 @@ export class CanvasNode extends NodeDiv {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-    draw() {
+    draw(input,node,origin,cmd) {
         let canvas = this.props.canvas;
         let ctx = this.props.ctx;
     }
+
+    addDraw(f) {
+        if(typeof f === 'function') this.drawFuncs.push(f);
+    }
+
+    drawFuncs = []; // draw(input,args,origin,cmd){} <--- passes operator args
     
     //DOMElement custom callbacks:
     oncreate=(props)=>{

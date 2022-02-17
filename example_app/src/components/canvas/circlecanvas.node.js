@@ -24,6 +24,12 @@ export class CircleCanvasNode extends NodeDiv {
 
             if(cmd === 'animate') {
                 this.draw();
+                for(let i = 0; i < this.drawFuncs.length; i++) { //lets use other nodes to send draw functions to the canvas
+                    let f = this.drawFuncs[i];
+                    if(typeof f === 'function') {
+                        f(input,node,origin,cmd); //pass the args in (need these if you pass arrow functions)
+                    }
+                }
             } else {
                 if(typeof input === 'object') {
                     if(input.radius) this.props.radius += input.radius;
@@ -57,7 +63,7 @@ export class CircleCanvasNode extends NodeDiv {
     //set the template string or function (which can input props to return a modified string)
     template=component;
 
-    draw() {
+    draw(input,node,origin,cmd) {
         let canvas = this.props.canvas;
         let ctx = this.props.ctx;
         if(this.props.radius <= 1) this.props.radius = 1;
@@ -71,6 +77,12 @@ export class CircleCanvasNode extends NodeDiv {
             '#003300'
         );
     }
+
+    addDraw(f) {
+        if(typeof f === 'function') this.drawFuncs.push(f);
+    }
+
+    drawFuncs = []; // draw(input,args,origin,cmd){} <--- passes operator args
         
     drawCircle(centerX, centerY, radius, fill='green', strokewidth=5, strokestyle='#003300') {
         this.props.ctx.beginPath();
