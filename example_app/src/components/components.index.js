@@ -1,5 +1,5 @@
 import './acyclicgraph/graph.node.js'
-import './acyclicgraph/acyclicgraph.component.js'
+import './acyclicgraph/acyclic.graph.js'
 import './sequencer/seqnode.component.js'
 import './sequencer/sequencer.component.js'
 import './canvas/canvas.node.js'

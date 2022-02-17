@@ -3,7 +3,7 @@ import {addCustomElement} from 'fragelement';
 
 import {NodeDiv} from '../acyclicgraph/graph.node'
 
-let component = require('./templatenode.component.html');
+let component = require('./template.node.html');
 
 //See: https://github.com/brainsatplay/domelement
 export class TemplateNodeDiv extends NodeDiv {
