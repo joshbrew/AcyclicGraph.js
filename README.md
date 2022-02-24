@@ -71,10 +71,126 @@ let tree = { //top level should be an object, children can be arrays of objects
 let graph = new AcyclicGraph();
 graph.addNode(tree);
 
-graph.run(tree.tag,{x:4,y:5,z:6});
+let res = graph.run(tree.tag,{x:4,y:5,z:6}).then(res => console.log('promise, after', res));
+
+console.log('promise returned:',res);
 
 
 ```
+
+### GraphNode class
+
+These are the objects created to represent each node in the tree. They can be created and parent nodes without belonging to an acyclic graph. The acyclic graph simply adds sequential tags 'node0, node1' etc (rather than random tags) to all untagged nodes according to the order of the tree provided so it's easier to create self-referencing trees.
+
+GraphNode utilities
+
+```js
+
+    //node properties you can set, create a whole tree using the children
+    let props={
+        operator:(
+            input, //input, e.g. output from another node
+            node,  //'this' node
+            origin, //origin node
+            cmd    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
+        )=>{ console.log(input); return input; }, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
+        forward:true, //pass output to child nodes
+        backward:false, //pass output to parent node
+        children:undefined, //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
+        parent:undefined, //parent graph node
+        delay:false, //ms delay to fire the node
+        repeat:false, // set repeat as an integer to repeat the input n times
+        recursive:false, //or set recursive with an integer to pass the output back in as the next input n times
+        animate:false, //true or false
+        loop:undefined, //milliseconds or false
+        tag:undefined, //generated if not specified, or use to get another node by tag instead of generating a new one
+        input:undefined,// can set on the attribute etc
+        graph:undefined, //parent AcyclicGraph instance, can set manually or via enclosing acyclic-graph div
+        node:undefined, //GraphNode instance, can set manually or as a string to grab a node by tag (or use tag)
+    }; //can specify properties of the element which can be subscribed to for changes.
+
+
+let node = new GraphNode(props, parentNode, graph);
+
+node
+    .operator(input,node=this,origin,cmd) //<--- runs the operator function
+    
+    .runOp(input, node=this, origin, cmd) //<--- runs the operator and sets state with the result for that tag
+    
+    .runNode(node,input,origin) //<--- runs the node sequence starting from the given node, returns a promise that will spit out the final result from the tree if any
+
+    .run(input,node=this,origin) //<--- this is the base sequencing function, returns a promise that will spit out the final result of the tree if any
+
+    .runAnimation(input,node=this,origin) //run the operator loop on the animation loop with the given input conditions, the cmd will be 'animate' so you can put an if statement in to run animation logic in the operator
+
+    .runLoop(input,node=this,origin) //runs a setTimeout loop according to the node.loop setting (ms)
+
+    .setOperator(operator) //set the operator functions
+
+    .setParent(parent) //set the parent GraphNode
+
+    .addChildren(children) //add child GraphNodes to this node (operation results passed on forward pass)
+
+    .removeTree(node) //remove a node and all associated nodes
+
+    .addNode(props) //add a node using a properties object
+
+    .appendNode(props, parentNode=this) //append a child node with a properties object or string
+
+    .getNode(tag) //get a child node of this node by tag (in tree)
+
+    .stopLooping() //stop the loop
+
+    .stopAnimating() //stop the animation loop
+
+    .stopNode() //stop both
+
+    .convertChildrenToNodes(node=this) //convert child node properties objects/tags/etc to nodes.
+
+    .callParent(input, origin=this, cmd) //run the parent node operation (no propagation)
+
+    .callChildren(input, origin=this, cmd, idx) //call the children node(s) with the given input, won't run their forward/backward passes. 
+
+    .setProps(props) //assign to self
+
+    .subscribe(tag=this.tag, callback=(res)=>{}) //subscribe to the tagged node output, returns an int
+ 
+    .unsubscribe(tag=this.tag,sub) //unsubscribe from the tag, no sub = unsubscribe all
+
+```
+
+
+### Acyclic Graph Utilities
+
+```js
+
+//this is less useful now that the graph nodes are self contained but it can act as an index for your node trees.
+let graph = new AcyclicGraph();
+
+    graph
+
+        .addNode(node) // add a node with a properties object
+
+        .getNode(tag) // get a node by tag, nodes added in the acyclic graph automatically get their tags set to sequential numbers if not set otherwise
+
+        .run(node,input,origin) //
+
+        .removeTree(node) // remove a node tree by head node
+
+        .removeNode(node) // remove a node and any references
+
+        .appendNode(node, parentNode) // append a node to a parent node
+
+        .callParent(node,input,origin=node,cmd) // call a parent ndoe of a given node
+
+        .callChildren(node, input, origin=node, cmd, idx) // call the children of a given node
+
+        .subscribe(tag, callback=(res)=>{}) //subscribe to a node tag, callbacks contain that node's operator output, returns an int sub number
+
+        .unsubscribe(tag, sub) //unsubscribe to a node by tag, 
+
+```
+
 
 ### Design Philosophy
 
@@ -84,7 +200,7 @@ Graphs simply are a way to manage operation sequences. These can be directed or 
 Acyclic graphs are trees of operations with arbitrary entry and exit points plus arbitrary propagation of results through the tree.
 Each node is an object with a few required properties and functions and then anything else you want to add as variables, reference, utility functions etc. 
 
-Nodes added to the graph tree are made into a 'graphnode' class object with some added utility functions added to allow generic message passing between parent/child/any nodes.
+Nodes added to the graph tree are made into a 'GraphNode' class object with some added utility functions added to allow generic message passing between parent/child/any nodes.
 There are additional properties to indicate whether to delay (or render on frame), repeat or recurse, and do automatic forward or backprop based on the tree hierarchy.
 
 Each node comes with an 'operator' main function to handle input and output with arbitrary conditions. 
