@@ -70,11 +70,11 @@ export class NodeDiv extends DOMElement {
             if(parent.props?.node) props.parent = parent.props.node;
         }
         if(!props.graph) {   
-            while(!parent.props.nodes) { //has nodes prop, is an acyclic-graph
+            while(!parent.props?.nodes) { //has nodes prop, is an acyclic-graph
                 // console.log(parent)
                 // console.log(parent.tagName)
                 if(parent.constructor.name === 'HTMLBodyElement' || parent.constructor.name === 'HTMLHeadElement' || parent.constructor.name === 'HTMLHtmlElement' || parent.constructor.name === 'HTMLDocument') {
-                    console.error("No AcyclicGraph Found")
+                    //console.error("No AcyclicGraph Found")
                     break;
                 }
                 parent = parent.parentNode;
@@ -109,4 +109,4 @@ export class NodeDiv extends DOMElement {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(NodeDiv,'graph-node');
+NodeDiv.addElement('graph-node');

@@ -6,6 +6,9 @@ import './canvas/canvas.node.js'
 import './input/button.node.js'
 import './input/input.node.js'
 import './template/component.js'
+import './space/space.node.js'
+import './space/physicsbody.node.js'
+
 
 
 import './canvas/circlecanvas.node.js'

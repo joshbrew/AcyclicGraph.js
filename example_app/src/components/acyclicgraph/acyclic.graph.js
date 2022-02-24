@@ -1,5 +1,5 @@
 
-import {DOMElement, addCustomElement} from 'fragelement';
+import {DOMElement} from 'fragelement';
 
 import {AcyclicGraph} from 'acyclicgraph'
 
@@ -57,4 +57,4 @@ export class Graph extends DOMElement {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(Graph,'acyclic-graph');
+Graph.addElement('acyclic-graph');
