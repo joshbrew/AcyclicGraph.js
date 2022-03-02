@@ -26,4 +26,4 @@ export class Custom extends DOMElement {
 
 //window.customElements.define('custom-', Custom);
 
-addCustomElement(Custom,'custom-');
+Custom.addElement('custom-');
