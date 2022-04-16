@@ -244,8 +244,8 @@ children;
 graph;
 state = state; //shared trigger state
 nodes = new Map();
-ANIMATE = 'animate' //operator is running on the animation loop (cmd )
-LOOP = 'loop' //operator is running on a setTimeout loop
+ANIMATE = 'animate' //operator is running on the animation loop (cmd = 'animate')
+LOOP = 'loop' //operator is running on a setTimeout loop (cmd = 'loop')
 
 constructor(properties={}, parentNode, graph) {
     if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 

@@ -2,6 +2,7 @@ import { AcyclicGraph, GraphNode } from "./acyclicgraph";
 
 //properties input on GraphNode or addNode, or for children
 export type GraphNodeProperties = {
+    tag?:string, //generated if not specified, or use to get another node by tag instead of generating a new one
     operator:(
         input:any, //input, e.g. output from another node
         node:GraphNodeProperties,  //'this' node
@@ -17,9 +18,6 @@ export type GraphNodeProperties = {
     recursive?:false|number, //or set recursive with an integer to pass the output back in as the next input n times
     animate?:boolean, //true or false
     loop?:false|number, //milliseconds or false
-    tag?:string, //generated if not specified, or use to get another node by tag instead of generating a new one
-    input?:any,// can set on the attribute etc
-    graph?:AcyclicGraph, //parent AcyclicGraph instance, can set manually or via enclosing acyclic-graph div
     [key:string]:any //add whatever variables and utilities
 }; //can specify properties of the element which can be subscribed to for changes.
 
