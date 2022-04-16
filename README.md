@@ -78,6 +78,11 @@ console.log('promise returned:',res);
 
 ```
 
+### Also try the webcomponents we built to run natively with our AcyclicGraph logic!
+`npm i acyclicgraph-webcomponents`
+
+Run the /example_app for demonstration, it's purely conceptual but you can see a fully implemented example at http://190.92.148.106 using this to do gravitational physics with html elements as planets.
+
 ### GraphNode class
 
 These are the objects created to represent each node in the tree. They can be created and parent nodes without belonging to an acyclic graph. The acyclic graph simply adds sequential tags 'node0, node1' etc (rather than random tags) to all untagged nodes according to the order of the tree provided so it's easier to create self-referencing trees.
@@ -157,6 +162,10 @@ node
  
     .unsubscribe(tag=this.tag,sub) //unsubscribe from the tag, no sub = unsubscribe all
 
+    .print(node=this,printChildren=true) //recursively print a reconstrucible json hierarchy of the graph nodes, including arbitrary keys/functions, if printChildren is set to false it will only print the tags and not the whole object in the .children property of this node
+
+    .reconstruct(json='{}') //reconstruct a jsonified node hierarchy into a functional GraphNode tree and add it to the list
+
 ```
 
 
@@ -189,6 +198,15 @@ let graph = new AcyclicGraph();
 
         .unsubscribe(tag, sub) //unsubscribe to a node by tag, 
 
+        .print(node,printChildren=true) //recursively print a reconstrucible json hierarchy of the graph nodes, including arbitrary keys/functions, if printChildren is set to false it will only print the tags and not the whole object in the .children property of this node
+
+        .reconstruct(json='{}') //reconstruct a jsonified node hierarchy into a functional GraphNode tree
+
+```
+
+Extra method:
+```js 
+reconstructNode(json='{}') //return a GraphNode tree reconstructed from a jsonified tree
 ```
 
 

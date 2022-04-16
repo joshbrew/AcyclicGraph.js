@@ -112,6 +112,7 @@ export const state = {
     }
 }
 
+
 export class AcyclicGraph {
     state = state;
     nodes = new Map()
@@ -221,6 +222,17 @@ export class AcyclicGraph {
         this.state.unsubscribeTrigger(tag,sub);
     }
 
+    print(node,printChildren=true) {
+        if(node instanceof GraphNode)
+            return node.print(node,printChildren);
+    }
+
+    //reconstruct a node hierarchy (incl. stringified functions) into a GraphNode set
+    reconstruct(json='{}') {
+        let parsed = reconstructObject(json);
+        if(parsed) this.addNode(parsed);
+    }
+
 }
 
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
@@ -232,6 +244,8 @@ children;
 graph;
 state = state; //shared trigger state
 nodes = new Map();
+ANIMATE = 'animate' //operator is running on the animation loop (cmd )
+LOOP = 'loop' //operator is running on a setTimeout loop
 
 constructor(properties={}, parentNode, graph) {
     if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
@@ -391,7 +405,7 @@ runAnimation(input,node=this,origin) {
                     input,
                     node,
                     origin,
-                    'animate'
+                    this.ANIMATE  // if(cmd === node.ANIMATE) {  } //'animate'
                 );
                 requestAnimationFrame(async ()=>{await anim();});
             }
@@ -410,7 +424,7 @@ runLoop(input,node=this,origin) {
                     input,
                     node,
                     origin,
-                    'loop'
+                    this.LOOP // if(cmd === node.LOOP) {  } //'loop'
                 );
                 setTimeout(async ()=>{await loop();},node.loop);
             }
@@ -479,6 +493,7 @@ addNode(node={}) {
     if(this.graph) this.graph.nodes.set(converted);
     return converted;
 }
+
 
 removeNode(node) {
     if(typeof node === 'string') node = this.nodes.get(node);
@@ -601,9 +616,197 @@ unsubscribe(tag=this.tag,sub) {
     this.state.unsubscribeTrigger(tag,sub);
 }
 
+//recursively print a reconstructible json hierarchy of the node and the children. 
+// Start at the top/initially called nodes to print the whole hierarchy in one go
+print(node=this,printChildren=true,nodesPrinted=[]) {
+
+    let dummyNode = new GraphNode(); //test against this for adding props
+
+    nodesPrinted.push(node.tag);
+
+    let jsonToPrint = {
+        tag:node.tag,
+        operator:node.operator.toString()
+    };
+
+    if(node.parent) jsonToPrint.parent = node.parent.tag;
+    //step through the children
+    if(node.children) {
+        if(Array.isArray(node.children)) {
+            node.children = node.children.map((c) => {
+                if(typeof c === 'string') return c;
+                if(nodesPrinted.includes(c.tag)) return c.tag;   
+                else if(!printChildren) {
+                    return c.tag;
+                }
+                else return c.print(c,printChildren,nodesPrinted);
+            });
+        } else if (typeof node.children === 'object') { 
+            if(!printChildren) {
+                jsonToPrint.children = [c.tag];
+            }
+            if(nodesPrinted.includes(c.tag))  jsonToPrint.children = [node.children.tag];
+                else  jsonToPrint.children = [node.children.print(node.children,printChildren,nodesPrinted)];
+        } else if (typeof node.children === 'string') jsonToPrint.children = [node.children];
+        
+    }
+
+    for(const prop in node) {
+        if(typeof dummyNode[prop] === 'undefined') {
+            if(typeof node[prop] === 'function') {
+                jsonToPrint[prop] = node[prop].toString()
+            } else if (typeof node[prop] === 'object') {
+                jsonToPrint[prop] = JSON.stringifyWithCircularRefs(node[prop]); //circular references won't work, nested nodes already printed elsewhere in the tree will be kept as their tags
+            } 
+            else {
+                jsonToPrint[prop] = node[prop];
+            }
+        }
+    }
+
+    return JSON.stringify(jsonToPrint);
+
 }
 
+//reconstruct a node hierarchy (incl. stringified functions) into a GraphNode set
+reconstruct(json='{}') {
+    let parsed = reconstructObject(json);
+    if(parsed) this.addNode(parsed);
+}
+
+}
+
+
+//macro
+export function reconstructNode(json='{}',parentNode,graph) {
+    let reconstructed = reconstructObject(json);
+    if(reconstructed) return new GraphNode(reconstructed,parentNode,graph);
+    else return undefined;
+}
 
 // exports.AcyclicGraph = AcyclicGraph;
 // exports.GraphNode = GraphNode;
 
+//parse stringified object with stringified functions
+export function reconstructObject(json='{}') {
+    try{
+        let parsed = JSON.parse(json);
+
+        function parseObj(obj) {
+            for(const prop in obj) {
+                if(typeof obj[prop] === 'string') {
+                    let funcParsed = parseFunctionFromText(obj[prop]);
+                    if(typeof funcParsed === 'function') {
+                        obj[prop] = funcParsed;
+                    }
+                } else if (typeof obj[prop] === 'object') {
+                    parseObj(obj[prop]);
+                }
+            }
+            return obj;
+        }
+
+        return parseObj(parsed);
+    } catch(err) {console.error(err); return undefined;}
+
+}
+
+
+if(JSON.stringifyWithCircularRefs === undefined) {
+    //Workaround for objects containing DOM nodes, which can't be stringified with JSON. From: https://stackoverflow.com/questions/4816099/chrome-sendrequest-error-typeerror-converting-circular-structure-to-json
+    JSON.stringifyWithCircularRefs = (function() {
+        const refs = new Map();
+        const parents = [];
+        const path = ["this"];
+
+        function clear() {
+        refs.clear();
+        parents.length = 0;
+        path.length = 1;
+        }
+
+        function updateParents(key, value) {
+            var idx = parents.length - 1;
+            var prev = parents[idx];
+            if(typeof prev === 'object') {
+                if (prev[key] === value || idx === 0) {
+                    path.push(key);
+                    parents.push(value.pushed);
+                } else {
+                    while (idx-- >= 0) {
+                        prev = parents[idx];
+                        if(typeof prev === 'object') {
+                            if (prev[key] === value) {
+                                idx += 2;
+                                parents.length = idx;
+                                path.length = idx;
+                                --idx;
+                                parents[idx] = value;
+                                path[idx] = key;
+                                break;
+                            }
+                        }
+                        idx--;
+                    }
+                }
+            }
+        }
+
+        function checkCircular(key, value) {
+        if (value != null) {
+            if (typeof value === "object") {
+            if (key) { updateParents(key, value); }
+
+            let other = refs.get(value);
+            if (other) {
+                return '[Circular Reference]' + other;
+            } else {
+                refs.set(value, path.join('.'));
+            }
+            }
+        }
+        return value;
+        }
+
+        return function stringifyWithCircularRefs(obj, space) {
+        try {
+            parents.push(obj);
+            return JSON.stringify(obj, checkCircular, space);
+        } finally {
+            clear();
+        }
+        }
+    })();
+}
+
+export function parseFunctionFromText(method='') {
+    //Get the text inside of a function (regular or arrow);
+    let getFunctionBody = (methodString) => {
+      return methodString.replace(/^\W*(function[^{]+\{([\s\S]*)\}|[^=]+=>[^{]*\{([\s\S]*)\}|[^=]+=>(.+))/i, '$2$3$4');
+    }
+  
+    let getFunctionHead = (methodString) => {
+      let startindex = methodString.indexOf(')');
+      return methodString.slice(0, methodString.indexOf('{',startindex) + 1);
+    }
+  
+    let newFuncHead = getFunctionHead(method);
+    let newFuncBody = getFunctionBody(method);
+  
+    let newFunc;
+    if (newFuncHead.includes('function ')) {
+      let varName = newFuncHead.split('(')[1].split(')')[0]
+      newFunc = new Function(varName, newFuncBody);
+    } else {
+      if(newFuncHead.substring(0,6) === newFuncBody.substring(0,6)) {
+        //newFuncBody = newFuncBody.substring(newFuncHead.length);
+        let varName = newFuncHead.split('(')[1].split(')')[0]
+        //console.log(varName, newFuncHead ,newFuncBody);
+        newFunc = new Function(varName, newFuncBody.substring(newFuncBody.indexOf('{')+1,newFuncBody.length-1));
+      }
+      else newFunc = eval(newFuncHead + newFuncBody + "}");
+    }
+  
+    return newFunc;
+  
+  }

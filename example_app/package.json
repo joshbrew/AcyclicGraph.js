@@ -20,7 +20,7 @@
     "acyclicgraph": "^0.2.7",
     "anothersequencer": "^0.1.9",
     "esbuild": "^0.14.21",
-    "fragelement": "^1.2.9",
+    "fragelement": "^1.3.2",
     "dynamicparticles":"^0.0.16",
     "magicworker": "^1.0.15"
   },

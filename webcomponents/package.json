@@ -1,0 +1,18 @@
+{
+  "name": "acyclicgraph-webcomponents",
+  "version": "1.0.0",
+  "description": "Web components built on the acyclicgraph lib",
+  "main": "components.index.js",
+  "scripts": {
+
+  },
+  "keywords": [
+    "webcomponents"
+  ],
+  "author": "Joshua Brewster",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "acyclicgraph": "^0.2.8",
+    "fragelement": "^1.3.2"
+  }
+}
