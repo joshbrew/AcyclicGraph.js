@@ -652,6 +652,7 @@ print(node=this,printChildren=true,nodesPrinted=[]) {
     }
 
     for(const prop in node) {
+        if(prop === 'parent' || prop === 'children') continue; //skip these as they are dealt with as special cases
         if(typeof dummyNode[prop] === 'undefined') {
             if(typeof node[prop] === 'function') {
                 jsonToPrint[prop] = node[prop].toString()
