@@ -220,6 +220,15 @@ export class AcyclicGraph {
     unsubscribe(tag,sub) {
         this.state.unsubscribeTrigger(tag,sub);
     }
+    
+    //subscribe a node to this node that isn't a child of this node
+    subscribeNode(inputNode, outputNode) {
+        return this.state.subscribeTrigger(inputNode.tag,(res)=>{this.run(outputNode,res,this);})
+    }
+
+    create(operator=(input,node,origin,cmd)=>{},parentNode,props) {
+        return createNode(operator,parentNode,props,this);
+    }
 
     print(node,printChildren=true) {
         if(node instanceof GraphNode)
@@ -616,6 +625,11 @@ unsubscribe(tag=this.tag,sub) {
     this.state.unsubscribeTrigger(tag,sub);
 }
 
+//subscribe a node to this node that isn't a child of this node
+subscribeNode(node) {
+    return this.state.subscribeTrigger(this.tag,(res)=>{this.runNode(node,res,this);})
+}
+
 //recursively print a reconstructible json hierarchy of the node and the children. 
 // Start at the top/initially called nodes to print the whole hierarchy in one go
 print(node=this,printChildren=true,nodesPrinted=[]) {
@@ -675,8 +689,18 @@ reconstruct(json='{}') {
     if(parsed) this.addNode(parsed);
 }
 
+
+
 }
 
+
+export function createNode(operator,parentNode,props,graph) {
+    if(typeof props === 'object') {
+        props.operator = operator;
+        return new GraphNode(props,parentNode,graph);
+    }
+    return new GraphNode({operator:operator},parentNode,graph);
+}
 
 //macro
 export function reconstructNode(json='{}',parentNode,graph) {
