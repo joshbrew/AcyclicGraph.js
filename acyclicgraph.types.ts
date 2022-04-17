@@ -6,7 +6,7 @@ export type GraphNodeProperties = {
     operator:( //can be async
         input:any, //input, e.g. output from another node
         node:GraphNode|string,  //'this' node
-        origin?:GraphNode, //origin node
+        origin?:GraphNode|string, //origin node
         cmd?:string    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
     )=>any|AsyncGeneratorFunction, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
     forward:boolean, //pass output to child nodes
