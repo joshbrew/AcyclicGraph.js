@@ -190,7 +190,6 @@ export class AcyclicGraph {
             if(this.nodes.get(node.tag)) 
             {
                 this.nodes.delete(node.tag);
-                if(this.graph) this.graph.nodes.delete(node.tag);
                 this.nodes.forEach((n) => {
                     if(n.nodes.get(node.tag)) n.nodes.delete(node.tag);
                 });
@@ -489,8 +488,8 @@ removeTree(node) {
 //converts all children nodes and tag references to graphnodes also
 addNode(node={}) {
     let converted = new GraphNode(node,this,this.graph); 
-    this.nodes.set(converted);
-    if(this.graph) this.graph.nodes.set(converted);
+    this.nodes.set(convertedtag,converted);
+    if(this.graph) this.graph.nodes.set(converted.tag,converted);
     return converted;
 }
 
@@ -520,18 +519,19 @@ getNode(tag) {
 }
 
 //stop any loops
-stopLooping() {
+stopLooping(node=this) {
     node.isLooping = false;
 }
 
-stopAnimating() {
+stopAnimating(node=this) {
     node.isAnimating = false;
 }
 
-stopNode() {
-    this.stopAnimating();
-    this.stopLooping();
+stopNode(node=this) {
+    node.stopAnimating(node);
+    node.stopLooping(node);
 }
+
 
 //append child
 addChildren(children) {
@@ -543,25 +543,25 @@ addChildren(children) {
 
 convertChildrenToNodes(n=this) {
     if(n.children?.name === 'GraphNode') { 
-        if(!this.graph?.nodes.get(n.tag)) this.graph.nodes.set(n.tag);
-        if(!this.nodes.get(n.tag)) this.nodes.set(n.tag); 
+        if(!this.graph?.nodes.get(n.tag)) this.graph.nodes.set(n.tag,n);
+        if(!this.nodes.get(n.tag)) this.nodes.set(n.tag,n); 
     }
     else if (Array.isArray(n.children)) {
         for(let i = 0; i < n.children.length; i++) {
             if(n.children[i].name === 'GraphNode') { 
-                if(!this.graph?.nodes.get(n.children[i].tag)) this.graph.nodes.set(n.children[i].tag);
-                if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i].tag);
+                if(!this.graph?.nodes.get(n.children[i].tag)) this.graph.nodes.set(n.children[i].tag,n.children[i]);
+                if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i].tag,n.children[i]);
                 continue; 
             }
             else if(typeof n.children[i] === 'object') {
                 n.children[i] = new GraphNode(n.children[i],n,this.graph);
-                this.nodes.set(n.children[i].tag);
+                this.nodes.set(n.children[i].tag,n.children[i]);
                 this.convertChildrenToNodes(n.children[i]);
             } 
             else if (typeof n.children[i] === 'string') {
                 if(this.graph) {
                     n.children[i] = this.graph.getNode(n.children[i]); //try graph scope
-                    if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i]);
+                    if(!this.nodes.get(n.children[i].tag)) this.nodes.set(n.children[i].tag,n.children[i]);
                 }
                 if(!n.children[i]) n.children[i] = this.nodes.get(n.children[i]); //try local scope
             }
@@ -570,13 +570,13 @@ convertChildrenToNodes(n=this) {
     }
     else if(typeof n.children === 'object') {
         n.children = new GraphNode(n.children,n,this.graph);
-        this.nodes.set(n.children.tag);
+        this.nodes.set(n.children.tag,n.children);
         this.convertChildrenToNodes(n.children);
     } 
     else if (typeof n.children === 'string') {
         if(this.graph) {
             n.children = this.graph.getNode(n.children); //try graph scope
-            if(!this.nodes.get(n.children.tag)) this.nodes.set(n.children);
+            if(!this.nodes.get(n.children.tag)) this.nodes.set(n.children.tag,n.children);
         }
         if(!n.children) n.children = this.nodes.get(n.children); //try local scope
     }
@@ -643,9 +643,9 @@ print(node=this,printChildren=true,nodesPrinted=[]) {
             });
         } else if (typeof node.children === 'object') { 
             if(!printChildren) {
-                jsonToPrint.children = [c.tag];
+                jsonToPrint.children = [node.children.tag];
             }
-            if(nodesPrinted.includes(c.tag))  jsonToPrint.children = [node.children.tag];
+            if(nodesPrinted.includes(node.children.tag))  jsonToPrint.children = [node.children.tag];
                 else  jsonToPrint.children = [node.children.print(node.children,printChildren,nodesPrinted)];
         } else if (typeof node.children === 'string') jsonToPrint.children = [node.children];
         
