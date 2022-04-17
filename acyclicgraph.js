@@ -617,11 +617,11 @@ setProps(props={}) {
     Object.assign(this,props);
 }
 
-subscribe(tag=this.tag,callback=(res)=>{}) {
+subscribe(callback=(res)=>{},tag=this.tag) {
     return this.state.subscribeTrigger(tag,callback);
 }
 
-unsubscribe(tag=this.tag,sub) {
+unsubscribe(sub,tag=this.tag) {
     this.state.unsubscribeTrigger(tag,sub);
 }
 

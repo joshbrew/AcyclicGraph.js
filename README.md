@@ -182,9 +182,11 @@ node
 
     .setProps(props) //assign to self
 
-    .subscribe(tag=this.tag, callback=(res)=>{}) //subscribe to the tagged node output, returns an int
+    .subscribe(callback=(res)=>{},tag=this.tag) //subscribe to the tagged node output, returns an int
  
-    .unsubscribe(tag=this.tag,sub) //unsubscribe from the tag, no sub = unsubscribe all
+    .unsubscribe(sub,tag=this.tag) //unsubscribe from the tag, no sub = unsubscribe all
+
+    .subscribeNode(node) //subscribe another node (not a direct child) to this node
 
     .print(node=this,printChildren=true) //recursively print a reconstrucible json hierarchy of the graph nodes, including arbitrary keys/functions, if printChildren is set to false it will only print the tags and not the whole object in the .children property of this node
 
@@ -206,6 +208,8 @@ let graph = new AcyclicGraph();
 
         .getNode(tag) // get a node by tag, nodes added in the acyclic graph automatically get their tags set to sequential numbers if not set otherwise
 
+        .create(operator=(input,node,origin,cmd)=>{},parentNode,props) //create a node just using an operator, can pass props for more
+
         .run(node,input,origin) //
 
         .removeTree(node) // remove a node tree by head node
@@ -222,15 +226,21 @@ let graph = new AcyclicGraph();
 
         .unsubscribe(tag, sub) //unsubscribe to a node by tag, 
 
+        .subscribeNode(inputNode,outputNode) //subscribe the outputNode to the output of the inputNode
+
         .print(node,printChildren=true) //recursively print a reconstrucible json hierarchy of the graph nodes, including arbitrary keys/functions, if printChildren is set to false it will only print the tags and not the whole object in the .children property of this node
 
         .reconstruct(json='{}') //reconstruct a jsonified node hierarchy into a functional GraphNode tree
 
 ```
 
-Extra method:
+Extra methods:
 ```js 
 reconstructNode(json='{}') //return a GraphNode tree reconstructed from a jsonified tree
+
+//just provide an operator to make a node
+createNode(operator=(input,node,origin,cmd)=>{},parentNode,props,graph)
+
 ```
 
 
