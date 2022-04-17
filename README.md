@@ -210,7 +210,9 @@ let graph = new AcyclicGraph();
 
         .create(operator=(input,node,origin,cmd)=>{},parentNode,props) //create a node just using an operator, can pass props for more
 
-        .run(node,input,origin) //
+        .run(node,input,origin) //<--- runs the node sequence starting from the given node, returns a promise that will spit out the final result from the tree if any
+
+        .runNode(node,input,origin) //same as run
 
         .removeTree(node) // remove a node tree by head node
 
