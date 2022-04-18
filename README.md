@@ -85,7 +85,7 @@ Run the /example_app for demonstration, it's purely conceptual but you can see a
 
 ### GraphNode class
 
-These are the objects created to represent each node in the tree. They can be created and parent nodes without belonging to an acyclic graph. The acyclic graph simply adds sequential tags 'node0, node1' etc (rather than random tags) to all untagged nodes according to the order of the tree provided so it's easier to create self-referencing trees.
+These are the objects created to represent each node in the tree. They can be created without belonging to an acyclic graph. The acyclic graph simply adds sequential tags 'node0, node1' etc (rather than random tags) to all untagged nodes according to the order of the tree provided so it's easier to create self-referencing trees.
 
 GraphNode properties
 ```ts
@@ -96,7 +96,7 @@ type GraphNodeProperties = {
         node:GraphNode|string,  //'this' node
         origin?:GraphNode|string, //origin node
         cmd?:string|number    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
-    )=>any|AsyncGeneratorFunction, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
+    )=>any, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
     forward:boolean, //pass output to child nodes
     backward:boolean, //pass output to parent node
     children?:string|GraphNodeProperties|GraphNode|(GraphNodeProperties|GraphNode|string)[], //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
