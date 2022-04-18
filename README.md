@@ -91,21 +91,33 @@ GraphNode properties
 ```ts
 type GraphNodeProperties = {
     tag?:string, //generated if not specified, or use to get another node by tag instead of generating a new one
-    operator:(
+    operator:( //can be async
         input:any, //input, e.g. output from another node
-        node:GraphNodeProperties,  //'this' node
-        origin?:GraphNodeProperties, //origin node
-        cmd?:string    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
+        node:GraphNode|string,  //'this' node
+        origin?:GraphNode|string, //origin node
+        cmd?:string|number    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
     )=>any|AsyncGeneratorFunction, //Operator to handle I/O on this node. Returned inputs can propagate according to below settings
     forward:boolean, //pass output to child nodes
     backward:boolean, //pass output to parent node
     children?:string|GraphNodeProperties|GraphNode|(GraphNodeProperties|GraphNode|string)[], //child node(s), can be tags of other nodes, properties objects like this, or graphnodes, or null
     parent?:GraphNode|undefined, //parent graph node
     delay?:false|number, //ms delay to fire the node
-    repeat?:false|number, // set repeat as an integer to repeat the input n times
-    recursive?:false|number, //or set recursive with an integer to pass the output back in as the next input n times
+    repeat?:false|number, // set repeat as an integer to repeat the input n times, cmd will be the number of times the operation has been repeated
+    recursive?:false|number, //or set recursive with an integer to pass the output back in as the next input n times, cmd will be the number of times the operation has been repeated
     animate?:boolean, //true or false
     loop?:false|number, //milliseconds or false
+    animation?:( //uses operator by default unless defined otherwise can be async 
+        input:any, //input, e.g. output from another node
+        node:GraphNode|string,  //'this' node
+        origin?:GraphNode|string, //origin node
+        cmd?:string|number    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
+    )=>any | undefined,
+    looper?:( //uses operator by default unless defined otherwise (to separate functions or keep them consolidated) can be async
+        input:any, //input, e.g. output from another node
+        node:GraphNode|string,  //'this' node
+        origin?:GraphNode|string, //origin node
+        cmd?:string|number    //e.g. 'loop' or 'animate' will be defined if the operator is running on the loop or animate routines, needed something. Can define more commands but you might as well use an object in input for that. 
+    )=>any | undefined,
     [key:string]:any //add whatever variables and utilities
 }; //can specify properties of the element which can be subscribed to for changes.
 
@@ -182,11 +194,11 @@ node
 
     .setProps(props) //assign to self
 
-    .subscribe(callback=(res)=>{},tag=this.tag) //subscribe to the tagged node output, returns an int
+    .subscribe(callback=(res)=>{},tag=this.tag) //subscribe to the tagged node output, returns an int. if you pass a graphnode as a callback it will call subscribeNode
  
     .unsubscribe(sub,tag=this.tag) //unsubscribe from the tag, no sub = unsubscribe all
 
-    .subscribeNode(node) //subscribe another node (not a direct child) to this node
+    .subscribeNode(node) //subscribe another node sequence (not a direct child) to this node's output via the state
 
     .print(node=this,printChildren=true) //recursively print a reconstrucible json hierarchy of the graph nodes, including arbitrary keys/functions, if printChildren is set to false it will only print the tags and not the whole object in the .children property of this node
 
