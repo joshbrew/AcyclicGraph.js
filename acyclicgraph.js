@@ -417,7 +417,7 @@ runAnimation(animation=this.animation,input,node=this,origin) {
         node.isAnimating = true;
         let anim = async () => {
             if(node.isAnimating) {
-                let result = await animation( 
+                let result = await this.animation( 
                     input,
                     node,
                     origin,
