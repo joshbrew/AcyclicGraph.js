@@ -9,7 +9,7 @@
 //   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
 
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
-export const state = {
+const state = {
     pushToState:{},
     data:{},
     triggers:{},
@@ -67,7 +67,7 @@ export const state = {
 }
 
 
-export class AcyclicGraph {
+class AcyclicGraph {
     state = state;
     nodes = new Map()
     nNodes = 0
@@ -96,6 +96,9 @@ export class AcyclicGraph {
             return node.run(input,node,origin)
         else return undefined;
     }
+    
+    //Should create a sync version with no promises (will block but be faster)
+    runNode=this.run;
 
     removeTree(node) {
         if(typeof node === 'string') node = this.nodes.get(node);
@@ -174,6 +177,15 @@ export class AcyclicGraph {
     unsubscribe(tag,sub) {
         this.state.unsubscribeTrigger(tag,sub);
     }
+    
+    //subscribe a node to this node that isn't a child of this node
+    subscribeNode(inputNode, outputNode) {
+        return this.state.subscribeTrigger(inputNode.tag,(res)=>{this.run(outputNode,res,this);})
+    }
+
+    create(operator=(input,node,origin,cmd)=>{},parentNode,props) {
+        return createNode(operator,parentNode,props,this);
+    }
 
     print(node,printChildren=true) {
         if(node instanceof GraphNode)
@@ -190,15 +202,18 @@ export class AcyclicGraph {
 
 //the utilities in this class can be referenced in the operator after setup for more complex functionality
 //node functionality is self-contained, use a graph for organization
-export class GraphNode {
+class GraphNode {
 tag;
 parent;
 children;
 graph;
 state = state; //shared trigger state
 nodes = new Map();
-ANIMATE = 'animate' //operator is running on the animation loop (cmd = 'animate')
-LOOP = 'loop' //operator is running on a setTimeout loop (cmd = 'loop')
+ANIMATE = 'animate'; //operator is running on the animation loop (cmd = 'animate')
+LOOP = 'loop'; //operator is running on a setTimeout loop (cmd = 'loop')
+looper = undefined; //loop function, uses operator if undefined (with cmd 'loop');
+animation = undefined; //animation function, uses operator if undefined (with cmd 'animate')
+
 
 constructor(properties={}, parentNode, graph) {
     if(!properties.tag && graph) properties.tag = `node${graph.nNodes}`; //add a sequential id to find the node in the tree 
@@ -320,12 +335,12 @@ run(input,node=this,origin) {
 
                 //can add an animationFrame coroutine, one per node //because why not
                 if(node.animate && !node.isAnimating) {
-                    this.runAnimation(input,node,origin);
+                    this.runAnimation(this.animation,input,node,origin);
                 }
 
                 //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
                 if(typeof node.loop === 'number' && !node.isLooping) {
-                    this.runLoop(input,node,origin);
+                    this.runLoop(this.looper,input,node,origin);
                 }
                 
                 return res;
@@ -348,18 +363,34 @@ run(input,node=this,origin) {
     });
 }
 
-runAnimation(input,node=this,origin) {
+runAnimation(animation=this.animation,input,node=this,origin) {
     //can add an animationFrame coroutine, one per node //because why not
+    this.animation = animation;
+    if(!animation) this.animation = this.operator;
     if(node.animate && !node.isAnimating) {
         node.isAnimating = true;
         let anim = async () => {
             if(node.isAnimating) {
-                await node.runOp( 
+                let result = await this.animation( 
                     input,
                     node,
                     origin,
-                    this.ANIMATE  // if(cmd === node.ANIMATE) {  } //'animate'
+                    this.ANIMATE
                 );
+                if(this.tag && typeof result !== 'undefined') {
+                    this.state.setState({[this.tag]:result}); //if the anim returns it can trigger state
+                    if(node.backward && node.parent) {
+                        await this.runNode(node.parent,result,node);
+                    }
+                    if(node.children && node.forward) {
+                        if(Array.isArray(node.children)) {
+                            for(let i = 0; i < node.children.length; i++) {
+                                await this.runNode(node.children[i],result,node);
+                            }
+                        }
+                        else await this.runNode(node.children,result,node);
+                    }
+                }
                 requestAnimationFrame(async ()=>{await anim();});
             }
         }
@@ -367,19 +398,30 @@ runAnimation(input,node=this,origin) {
     }
 }
 
-runLoop(input,node=this,origin) {
+runLoop(loop=this.looper,input,node=this,origin) {
     //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+    this.looper = loop;
+    if(!loop) this.looper = this.operator;
     if(typeof node.loop === 'number' && !node.isLooping) {
         node.isLooping = true;
-        let loop = async () => {
+        let looping = async () => {
             if(node.looping)  {
-                await node.runOp( 
-                    input,
-                    node,
-                    origin,
-                    this.LOOP // if(cmd === node.LOOP) {  } //'loop'
-                );
-                setTimeout(async ()=>{await loop();},node.loop);
+                let result = await this.looper(input,node,origin);
+                if(this.tag && typeof result !== 'undefined') {
+                    this.state.setState({[this.tag]:result}); //if the loop returns it can trigger state
+                    if(node.backward && node.parent) {
+                        await this.runNode(node.parent,result,node);
+                    }
+                    if(node.children && node.forward) {
+                        if(Array.isArray(node.children)) {
+                            for(let i = 0; i < node.children.length; i++) {
+                                await this.runNode(node.children[i],result,node);
+                            }
+                        }
+                        else await this.runNode(node.children,result,node);
+                    }
+                }
+                setTimeout(async ()=>{await looping();},node.loop);
             }
         }
     }
@@ -562,12 +604,18 @@ setProps(props={}) {
     Object.assign(this,props);
 }
 
-subscribe(tag=this.tag,callback=(res)=>{}) {
+subscribe(callback=(res)=>{},tag=this.tag) {
+    if(callback instanceof GraphNode) return this.subscribeNode(callback);
     return this.state.subscribeTrigger(tag,callback);
 }
 
-unsubscribe(tag=this.tag,sub) {
+unsubscribe(sub,tag=this.tag) {
     this.state.unsubscribeTrigger(tag,sub);
+}
+
+//subscribe a node to this node that isn't a child of this node
+subscribeNode(node,tag=this.tag) {
+    return this.state.subscribeTrigger(tag,(res)=>{this.runNode(node,res,this);})
 }
 
 //recursively print a reconstructible json hierarchy of the node and the children. 
@@ -629,11 +677,21 @@ reconstruct(json='{}') {
     if(parsed) this.addNode(parsed);
 }
 
+
+
 }
 
 
+function createNode(operator,parentNode,props,graph) {
+    if(typeof props === 'object') {
+        props.operator = operator;
+        return new GraphNode(props,parentNode,graph);
+    }
+    return new GraphNode({operator:operator},parentNode,graph);
+}
+
 //macro
-export function reconstructNode(json='{}',parentNode,graph) {
+function reconstructNode(json='{}',parentNode,graph) {
     let reconstructed = reconstructObject(json);
     if(reconstructed) return new GraphNode(reconstructed,parentNode,graph);
     else return undefined;
@@ -643,7 +701,7 @@ export function reconstructNode(json='{}',parentNode,graph) {
 // exports.GraphNode = GraphNode;
 
 //parse stringified object with stringified functions
-export function reconstructObject(json='{}') {
+function reconstructObject(json='{}') {
     try{
         let parsed = JSON.parse(json);
 
@@ -734,7 +792,7 @@ if(JSON.stringifyWithCircularRefs === undefined) {
     })();
 }
 
-export function parseFunctionFromText(method='') {
+function parseFunctionFromText(method='') {
     //Get the text inside of a function (regular or arrow);
     let getFunctionBody = (methodString) => {
       return methodString.replace(/^\W*(function[^{]+\{([\s\S]*)\}|[^=]+=>[^{]*\{([\s\S]*)\}|[^=]+=>(.+))/i, '$2$3$4');
@@ -765,7 +823,6 @@ export function parseFunctionFromText(method='') {
     return newFunc;
   
   }
-
 
 
 
