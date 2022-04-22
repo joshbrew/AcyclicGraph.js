@@ -60,22 +60,14 @@ export const state = {
     data:{},
     triggers:{},
     setState(updateObj){
-        Object.assign(this.pushToState,updateObj);
+        
+        Object.assign(this.data, updateObj);
 
-        if(Object.keys(this.triggers).length > 0) {
-            // Object.assign(this.data,this.pushToState);
-            for (const prop of Object.getOwnPropertyNames(this.triggers)) {
-                if(this.pushToState[prop]) {
-                    this.data[prop] = this.pushToState[prop]
-                    delete this.pushToState[prop];
-                    this.triggers[prop].forEach((obj)=>{
-                        obj.onchange(this.data[prop]);
-                    });
-                }
-            }
+        for (const prop of Object.getOwnPropertyNames(updateObj)) {
+            if (this.triggers[prop]) this.triggers[prop].forEach((obj) => obj.onchange(this.data[prop]));
         }
 
-        return this.pushToState;
+        return this.data;
     },
     subscribeTrigger(key,onchange=(res)=>{}){
         if(key) {
@@ -234,7 +226,7 @@ export class AcyclicGraph {
     }
 
     print(node,printChildren=true) {
-        if(node instanceof GraphNode)
+        if(typeof node === 'object' && node.operator)
             return node.print(node,printChildren);
     }
 
@@ -575,13 +567,34 @@ stopNode(node=this) {
 }
 
 
-//append child
-addChildren(children) {
+ //append child
+ addChildren(children) {
     if(!this.children) this.children = [];
-    if(!Array.isArray(this.children) && this.children) this.children = [this.children];
-    else if(Array.isArray(children)) this.children.push(...children);
-    else this.children.push(children);
+    if(!Array.isArray(this.children)) {
+        this.children = [children];
+        if(typeof children === 'object' && children.tag) {
+            this.nodes.set(children.tag,children);
+            if(this.graph) this.graph.nodes.set(children.tag,children);
+        }
+    }
+    else if(Array.isArray(children)) {
+        this.children.push(...children);
+        children.forEach((c) => { 
+            if(typeof c === 'object' && c.tag) {
+                this.nodes.set(c.tag,c);
+                if(this.graph) this.graph.nodes.set(c.tag,c);
+            }
+        })
+    }
+    else {
+        this.children.push(children);
+        if(typeof children === 'object' && children.tag) {
+            this.nodes.set(children.tag,children);
+            if(this.graph) this.graph.nodes.set(children.tag,children);
+        }
+    }
 }
+
 
 convertChildrenToNodes(n=this) {
     if(n.children?.name === 'GraphNode') { 
@@ -651,7 +664,7 @@ setProps(props={}) {
 }
 
 subscribe(callback=(res)=>{},tag=this.tag) {
-    if(callback instanceof GraphNode) return this.subscribeNode(callback);
+    if(typeof callback === 'object') return this.subscribeNode(callback);
     return this.state.subscribeTrigger(tag,callback);
 }
 
