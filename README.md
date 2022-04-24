@@ -145,10 +145,7 @@ GraphNode utilities
         animate:false, //true or false
         loop:undefined, //milliseconds or false
         tag:undefined, //generated if not specified, or use to get another node by tag instead of generating a new one
-        input:undefined,// can set on the attribute etc
-        graph:undefined, //parent AcyclicGraph instance, can set manually or via enclosing acyclic-graph div
-        node:undefined, //GraphNode instance, can set manually or as a string to grab a node by tag (or use tag)
-    }; //can specify properties of the element which can be subscribed to for changes.
+      }; //can specify properties of the element which can be subscribed to for changes.
 
 
 let node = new GraphNode(props, parentNode, graph);
