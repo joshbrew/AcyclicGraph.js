@@ -275,8 +275,8 @@ operator(input,node=this,origin,cmd){
 
 //run the operator
 async runOp(input,node=this,origin,cmd) {
-    let result = await this.operator(input,node,origin,cmd);
-    if(this.tag) this.state.setState({[this.tag]:result});
+    let result = await node.operator(input,node,origin,cmd);
+    if(node.tag) this.state.setState({[node.tag]:result});
     return result;
 }
 

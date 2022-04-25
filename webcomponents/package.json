@@ -1,6 +1,6 @@
 {
   "name": "acyclicgraph-webcomponents",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Web components built on the acyclicgraph lib",
   "main": "components.index.js",
   "scripts": {
