@@ -292,13 +292,31 @@ runNode(node,input,origin) {
 //Should create a sync version with no promises (will block but be faster)
 run(input,node=this,origin) {
     if(typeof node === 'string') 
-        {
-            let fnd;
-            if(this.graph) fnd = this.graph.nodes.get(node);
-            if(!fnd) fnd = this.nodes.get(node);
-            node = fnd;
-            if(!node) return undefined;
+    {
+        let fnd;
+        if(this.graph) fnd = this.graph.nodes.get(node);
+        if(!fnd) fnd = this.nodes.get(node);
+        node = fnd;
+        if(!node) return undefined;
+    }
+
+    //no async/flow logic so just run and return the operator result
+    if(!((node.children && node.forward) || (node.parent && node.backward) || node.repeat || node.delay || node.frame || node.recursive || node.operator.constructor.name === 'AsyncFunction')){
+        let res = node.runOp(node, input, origin); //repeat/recurse before moving on to the parent/child
+
+         //can add an animationFrame coroutine, one per node //because why not
+         if(node.animate && !node.isAnimating) {
+            this.runAnimation(this.animation,input,node,origin);
         }
+
+        //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+        if(typeof node.loop === 'number' && !node.isLooping) {
+            this.runLoop(this.looper,input,node,origin);
+        }
+
+        return res;
+    }
+    
 
     return new Promise(async (resolve) => {
         if(node) {
