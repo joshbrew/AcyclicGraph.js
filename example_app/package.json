@@ -17,7 +17,7 @@
   "author": "Joshua Brewster",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "acyclicgraph": "^0.3.10",
+    "acyclicgraph": "^0.3.13",
     "anothersequencer": "^0.1.9",
     "esbuild": "^0.14.21",
     "fragelement": "^1.3.2",
