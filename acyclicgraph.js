@@ -274,10 +274,9 @@ operator(input,node=this,origin,cmd){
 runOp(input,node=this,origin,cmd) {
     let result = node.operator(input,node,origin,cmd);
     if(result instanceof Promise) {
-        result = new Promise(async (resolve) => {
-            let res = await result;
-            this.state.setState({[node.tag]:res});
-            resolve(res);
+        result.then((res) => {
+            this.state.setState({[node.tag]:res})
+            return res;
         });
     }
     else {
