@@ -1,9 +1,10 @@
 
-import {DOMElement, addCustomElement} from 'fragelement';
+import {DOMElement} from 'fragelement';
 
 import {GraphNode} from 'acyclicgraph'
 
 let component = require('./graph.node.html');
+if(typeof component !== 'string') component = component.default;
 
 //See: https://github.com/brainsatplay/domelement
 export class NodeDiv extends DOMElement {
@@ -37,26 +38,41 @@ export class NodeDiv extends DOMElement {
     //gotta customize this a little from the default DOMElement
     render = (props=this.props) => {
 
+        //console.log('rendering!')
+
         if(typeof this.template === 'function') this.templateString = this.template(props); //can pass a function
         else this.templateString = this.template;
 
         //this.innerHTML = this.templateString;
 
+        
         const t = document.createElement('template');
         t.innerHTML = this.templateString;
         const fragment = t.content;
-        if(this.fragment) { //will reappend the fragment without reappending the whole node if already rendered once
-            this.removeChild(this.fragment); 
+
+        if(this.FRAGMENT) { //will reappend the fragment without reappending the whole node if already rendered once
+            if(this.useShadow) {
+                this.shadowRoot.removeChild(this.FRAGMENT);
+            }   
+            else this.removeChild(this.FRAGMENT); 
         }
-        this.fragment = fragment;
-        this.appendChild(fragment);
+        if(this.useShadow) {
+            if(!this.attachedShadow) this.attachShadow({mode:'open'});
+            this.shadowRoot.prepend(fragment); //now you need to use the shadowRoot.querySelector etc.
+            this.FRAGMENT = this.shadowRoot.childNodes[this.shadowRoot.childNodes.length-1]
+        }   
+        else this.prepend(fragment);
+        this.FRAGMENT = this.childNodes[this.childNodes.length-1]
+        //this.appendChild(fragment);
         
         
         //add this here which will run a routine AFTER rendering so the elements can be updated
-        this.setupNode(this.props);
+        this.setupNode(props);
+
+        //console.log('Node tag: ',props.node.tag,', parent: ',props.node.parent);
         if(this.props.input) { //e.g. run the node on input
             setTimeout(async()=>{
-                this.props.node.runNode(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
+                this.props.node.run(this.props.node,this.props.input,this.props.graph); //run the inputs on the nodes once the children are loaded on the DOM so things propagate correctly
             },
             this.input_delay //makes sure children are loaded (e.g. on a DOM with a lot of loading, should add some execution delay to anticipate it as initial nodes are not aware of later-rendered nodes on the DOM)
             );

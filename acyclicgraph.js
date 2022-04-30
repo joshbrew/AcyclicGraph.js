@@ -51,9 +51,6 @@ graph.run(tree.tag,{x:4,y:5,z:6});
 each node in the tree becomes a GraphNode object
 
 */
-//TODO: try to reduce the async stack a bit for better optimization, though in general it is advantageous matter as long as node propagation isn't 
-//   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
-
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
 export const state = {
     pushToState:{},
@@ -274,9 +271,19 @@ operator(input,node=this,origin,cmd){
 }
 
 //run the operator
-async runOp(input,node=this,origin,cmd) {
-    let result = await node.operator(input,node,origin,cmd);
-    if(node.tag) this.state.setState({[node.tag]:result});
+runOp(input,node=this,origin,cmd) {
+    let result = node.operator(input,node,origin,cmd);
+    if(result instanceof Promise) {
+        result = new Promise(async (resolve) => {
+            let res = await result;
+            this.state.setState({[node.tag]:res});
+            resolve(res);
+        });
+    }
+    else {
+        this.state.setState({[node.tag]:result});
+    }
+        
     return result;
 }
 
@@ -289,7 +296,6 @@ runNode(node,input,origin) {
 }
 
 //runs the node sequence
-//Should create a sync version with no promises (will block but be faster)
 run(input,node=this,origin) {
     if(typeof node === 'string') 
     {

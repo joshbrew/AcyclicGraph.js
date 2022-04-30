@@ -4,6 +4,7 @@ import {DOMElement} from 'fragelement';
 import {AcyclicGraph} from 'acyclicgraph'
 
 let component = require('./acyclic.graph.html');
+if(typeof component !== 'string') component = component.default;
 
 //See: https://github.com/brainsatplay/domelement
 export class Graph extends DOMElement {

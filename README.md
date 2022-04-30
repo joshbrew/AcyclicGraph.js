@@ -104,6 +104,7 @@ type GraphNodeProperties = {
     delay?:false|number, //ms delay to fire the node
     repeat?:false|number, // set repeat as an integer to repeat the input n times, cmd will be the number of times the operation has been repeated
     recursive?:false|number, //or set recursive with an integer to pass the output back in as the next input n times, cmd will be the number of times the operation has been repeated
+    frame?:boolean, //true or false. If repeating or recursing, execute on requestAnimationFrame? Careful mixing this with animate:true
     animate?:boolean, //true or false
     loop?:false|number, //milliseconds or false
     animation?:( //uses operator by default unless defined otherwise can be async 
@@ -142,6 +143,7 @@ GraphNode utilities
         delay:false, //ms delay to fire the node
         repeat:false, // set repeat as an integer to repeat the input n times
         recursive:false, //or set recursive with an integer to pass the output back in as the next input n times
+        frame:false, //true or false. If repeating or recursing, execute on requestAnimationFrame? Careful mixing this with animate:true
         animate:false, //true or false
         loop:undefined, //milliseconds or false
         tag:undefined, //generated if not specified, or use to get another node by tag instead of generating a new one
@@ -153,11 +155,11 @@ let node = new GraphNode(props, parentNode, graph);
 node
     .operator(input,node=this,origin,cmd) //<--- runs the operator function
     
-    .runOp(input, node=this, origin, cmd) //<--- runs the operator and sets state with the result for that tag
+    .runOp(input, node=this, origin, cmd) //<--- runs the operator and sets state with the result for that tag. Returns a promise if the operator is an async function.
     
-    .runNode(node,input,origin) //<--- runs the node sequence starting from the given node, returns a promise that will spit out the final result from the tree if any
+    .runNode(node,input,origin) //<--- runs the node sequence starting from the given node. If any async or flow logic is being used by the node, it returns a promise which can be awaited to get the final result of the tree. Else it returns a synchronous operation for speed.
 
-    .run(input,node=this,origin) //<--- this is the base sequencing function, returns a promise that will spit out the final result of the tree if any
+    .run(input,node=this,origin) //<--- this is the base sequencing function.  If any async or flow logic is being used by the node, it returns a promise which can be awaited to get the final result of the tree. Else it returns a synchronous operation for speed.
 
     .runAnimation(input,node=this,origin) //run the operator loop on the animation loop with the given input conditions, the cmd will be 'animate' so you can put an if statement in to run animation logic in the operator
 

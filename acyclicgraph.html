@@ -5,31 +5,38 @@
 <script>
     //Joshua Brewster and Garrett Flynn AGPLv3.0
 
-//TODO: try to reduce the async stack a bit for better optimization, though in general it is advantageous matter as long as node propagation isn't 
-//   relied on for absolute maximal performance concerns, those generally require custom solutions e.g. matrix math or clever indexing, but this can be used as a step toward that.
+//just a more typical hierarchical graph tree with back and forward prop and arbitrary 
+// go-here-do-that utilities. Create an object node tree and make it do... things 
+// same setup as sequencer but object/array/tag only (no functions), and can add arbitrary properties to mutate on objects
+// or propagate to children/parents with utility calls that get added to the objects
+//Joshua Brewster and Garrett Flynn AGPLv3.0
 
+
+/*
+
+
+let graph = new AcyclicGraph();
+graph.addNode(tree);
+
+graph.run(tree.tag,{x:4,y:5,z:6});
+
+each node in the tree becomes a GraphNode object
+
+*/
 //a graph representing a callstack of nodes which can be arranged arbitrarily with forward and backprop or propagation to wherever
 const state = {
     pushToState:{},
     data:{},
     triggers:{},
     setState(updateObj){
-        Object.assign(this.pushToState,updateObj);
+        
+        Object.assign(this.data, updateObj);
 
-        if(Object.keys(this.triggers).length > 0) {
-            // Object.assign(this.data,this.pushToState);
-            for (const prop of Object.getOwnPropertyNames(this.triggers)) {
-                if(this.pushToState[prop]) {
-                    this.data[prop] = this.pushToState[prop]
-                    delete this.pushToState[prop];
-                    this.triggers[prop].forEach((obj)=>{
-                        obj.onchange(this.data[prop]);
-                    });
-                }
-            }
+        for (const prop of Object.getOwnPropertyNames(updateObj)) {
+            if (this.triggers[prop]) this.triggers[prop].forEach((obj) => obj.onchange(this.data[prop]));
         }
 
-        return this.pushToState;
+        return this.data;
     },
     subscribeTrigger(key,onchange=(res)=>{}){
         if(key) {
@@ -188,7 +195,7 @@ class AcyclicGraph {
     }
 
     print(node,printChildren=true) {
-        if(node instanceof GraphNode)
+        if(typeof node === 'object' && node.operator)
             return node.print(node,printChildren);
     }
 
@@ -236,9 +243,19 @@ operator(input,node=this,origin,cmd){
 }
 
 //run the operator
-async runOp(input,node=this,origin,cmd) {
-    let result = await this.operator(input,node,origin,cmd);
-    if(this.tag) this.state.setState({[this.tag]:result});
+runOp(input,node=this,origin,cmd) {
+    let result = node.operator(input,node,origin,cmd);
+    if(result instanceof Promise) {
+        result = new Promise(async (resolve) => {
+            let res = await result;
+            this.state.setState({[node.tag]:res});
+            resolve(res);
+        });
+    }
+    else {
+        this.state.setState({[node.tag]:result});
+    }
+        
     return result;
 }
 
@@ -251,16 +268,33 @@ runNode(node,input,origin) {
 }
 
 //runs the node sequence
-//Should create a sync version with no promises (will block but be faster)
 run(input,node=this,origin) {
     if(typeof node === 'string') 
-        {
-            let fnd;
-            if(this.graph) fnd = this.graph.nodes.get(node);
-            if(!fnd) fnd = this.nodes.get(node);
-            node = fnd;
-            if(!node) return undefined;
+    {
+        let fnd;
+        if(this.graph) fnd = this.graph.nodes.get(node);
+        if(!fnd) fnd = this.nodes.get(node);
+        node = fnd;
+        if(!node) return undefined;
+    }
+
+    //no async/flow logic so just run and return the operator result
+    if(!((node.children && node.forward) || (node.parent && node.backward) || node.repeat || node.delay || node.frame || node.recursive || node.operator.constructor.name === 'AsyncFunction')){
+        let res = node.runOp(node, input, origin); //repeat/recurse before moving on to the parent/child
+
+         //can add an animationFrame coroutine, one per node //because why not
+         if(node.animate && !node.isAnimating) {
+            this.runAnimation(this.animation,input,node,origin);
         }
+
+        //can add an infinite loop coroutine, one per node, e.g. an internal subroutine
+        if(typeof node.loop === 'number' && !node.isLooping) {
+            this.runLoop(this.looper,input,node,origin);
+        }
+
+        return res;
+    }
+    
 
     return new Promise(async (resolve) => {
         if(node) {
@@ -529,13 +563,34 @@ stopNode(node=this) {
 }
 
 
-//append child
-addChildren(children) {
+ //append child
+ addChildren(children) {
     if(!this.children) this.children = [];
-    if(!Array.isArray(this.children) && this.children) this.children = [this.children];
-    else if(Array.isArray(children)) this.children.push(...children);
-    else this.children.push(children);
+    if(!Array.isArray(this.children)) {
+        this.children = [children];
+        if(typeof children === 'object' && children.tag) {
+            this.nodes.set(children.tag,children);
+            if(this.graph) this.graph.nodes.set(children.tag,children);
+        }
+    }
+    else if(Array.isArray(children)) {
+        this.children.push(...children);
+        children.forEach((c) => { 
+            if(typeof c === 'object' && c.tag) {
+                this.nodes.set(c.tag,c);
+                if(this.graph) this.graph.nodes.set(c.tag,c);
+            }
+        })
+    }
+    else {
+        this.children.push(children);
+        if(typeof children === 'object' && children.tag) {
+            this.nodes.set(children.tag,children);
+            if(this.graph) this.graph.nodes.set(children.tag,children);
+        }
+    }
 }
+
 
 convertChildrenToNodes(n=this) {
     if(n.children?.name === 'GraphNode') { 
@@ -605,7 +660,7 @@ setProps(props={}) {
 }
 
 subscribe(callback=(res)=>{},tag=this.tag) {
-    if(callback instanceof GraphNode) return this.subscribeNode(callback);
+    if(typeof callback === 'object') return this.subscribeNode(callback);
     return this.state.subscribeTrigger(tag,callback);
 }
 
